@@ -99,6 +99,40 @@ bSelector(cacheKey, state) === bSelector(otherCacheKey, state)
 // `memoizedSelector` shares, and `state` argument is the same.
 ```
 
+#### The difference between inboxed and boxed
+- `boxed` could __increase__ probability to cache a value
+- `inboxed` could __decrease__ probability to cache a value
+
+`inboxed` is scoping all the _nested_ caches _behind_ a first argument. It if changes - cache changes.
+> Yet again - first argument is WHERE cache is stored.
+
+`boxed` is just storing result in a first argument. If cache is not found it is still possible to discover
+it in a nested cache.
+
+```js
+const memoizedSelector = kashe(selector);
+
+const inboxedSelector = inboxed(selector);
+const boxedSelector = boxed(selector);
+
+// state1 !== state2. selectors would use different caches, memoizedSelector included
+inboxedSelector(state1, data) !== inboxedSelector(state2, data)
+
+// state1 !== state2. memoization would fail, but memoizedSelector would return the same values
+  boxedSelector(state1, data) ===   boxedSelector(state2, data)
+```
+
+`inboxedSelector` is more memory safe, but CPU intensive. It guratines all selectors would be _clean_ for a session(first argument).
+`boxedSelector` is useful as long as everything here is still holds only ONE result. It may be wiped from nested selector, but still exists in a boxed
+```js
+memoizedSelector(data1);
+boxedSelector(state, data1); // they are the same
+boxedSelector(state, data2); // updating cache for both selectors
+memoizedSelector(data2); // they are the same
+memoizedSelector(data1); // cache is updated
+boxedSelector(state, data2); // !!!! result is still stored in `state`
+```
+
 ### fork
 - `fork(function: T):T` - create a copy of a selector, with overiden internal cache.
 `fork` has the same effect `inbox` has, but not adding a leading argument. First argument still expected to be an object, array, or a function.
