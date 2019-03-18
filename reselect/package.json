@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "main": "../dist/es5/.js",
+  "jsnext:main": "../dist/es2015/reselect.js",
+  "module": "../dist/es2015/reselect.js",
+  "types": "../dist/es5/reselect.d.ts"
+}
