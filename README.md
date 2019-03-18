@@ -11,9 +11,9 @@
 A WeakMap based memoization library for a better and safer caching
 
 ## Memoization
-Memoization is look technique. But is it reliable and _safe_?
+Memoization is cool technique. But is it reliable and _safe_?
 
-What is the difference between lodash.memoize, memoize-one, and React.useMemo?
+What is the difference between `lodash.memoize`, `memoize-one`, and `React.useMemo`?
 
 - [lodash.memoize](https://lodash.com/docs/4.17.11#memoize) is a cool thing. But but default it has endless cache size.
 - [memoize-one only](https://github.com/alexreardon/memoize-one) remembers the latest arguments and result. No need to worry about __cache busting__ mechanisms such as maxAge, maxSize, exclusions and so on which can be prone to __memory leaks__.
@@ -22,9 +22,11 @@ The downside of `useMemo` is React. You cannot use it outside of Functional Comp
 
 What about `reselect`, a tool powering up all the `redux` ecosystem? Still - __single cache item__. 
 
-- Is it server-side friendly? Nope, server handles many requests from many clients, and memoized value is constantly got wiped.
-- Is it saver-side _safe_? Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
-- Is it test friendly? Nope, tests should always work the same, while memoization will make it... less predictable.
+- __Is it server-side friendly?__ Nope, server handles many requests from many clients, and memoized value is constantly got wiped.
+- __Is it saver-side _safe_?__ Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
+- __Is it test friendly?__ Nope, tests should always work the same, while memoization will make it... less predictable.
+
+So - it's time to fix all the problems above.
 
 # API
 - kashe - memoization
@@ -96,7 +98,7 @@ bSelector(cacheKey, state) === bSelector(otherCacheKey, state)
 
 ### fork
 - `fork(function: T):T` - create a copy of a selector, with overiden internal cache.
-`fork` has the same effect `inbox` has, but not adding a leading argument. First argument still expected to be an object, array of a function.
+`fork` has the same effect `inbox` has, but not adding a leading argument. First argument still expected to be an object, array, or a function.
 ```js
 const selector = (state) => ({state});
 
@@ -106,6 +108,8 @@ memoized(state) === memoized(state);
 const forked = fork(memoized);
 memoized(state) !== memoized(state);
 ```
+
+# Cook-book
 
 ## Per-instance one argument memoization
 Let's imagine a simple HOC
@@ -243,7 +247,7 @@ const mapStateToProps = () => {
 # See also
 The nearest analog of `kashe` is [weak-memoize](https://github.com/emotion-js/emotion/tree/master/packages/weak-memoize), but it does accept only one argument.
 
-# PS
+# Kashe-y?
 When I first time I heard my nickname - `kashey` pronounces as `cache` - I decides to create a caching library one day. Here we go.
 
 # License
