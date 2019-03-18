@@ -6,6 +6,9 @@
     <a href="https://www.npmjs.com/package/kashe">
       <img src="https://img.shields.io/npm/v/kashe.svg?style=flat-square" />
     </a>
+    <a href="https://travis-ci.org/theKashey/kashe">
+       <img alt="Travis" src="https://img.shields.io/travis/theKashey/kashe/master.svg?style=flat-square">
+    </a>
 </div>
 
 A WeakMap based memoization library for a better and safer caching
