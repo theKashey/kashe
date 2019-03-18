@@ -112,6 +112,9 @@ const forked = fork(memoized);
 memoized(state) !== memoized(state);
 ```
 
+#### Size
+1.14 kb
+
 # Cook-book
 
 ## Per-instance one argument memoization
@@ -159,6 +162,8 @@ boxedKasheHoc(client2Key, ComponentA); // result is cached
 
 # Reselect API
 A `Reselect`-compatible API
+> TLDR: it just replaces default memoization for reselect - `createSelectorCreator(strongMemoize);`. `strongMemoize` - 
+is not public API yet. 
 
 Reselect is a great library, but it has one limitation - stores only one result. There are a few attempts
 to "fix" it

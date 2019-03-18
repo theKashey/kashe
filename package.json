@@ -19,6 +19,7 @@
   "author": "theKashey <thekashey@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "size-limit": "^0.21.1",
     "ts-jest": "^24.0.0",
     "ts-react-toolbox": "^0.2.2",
     "typescript": "^3.3.3333"
