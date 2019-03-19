@@ -112,8 +112,8 @@ it in a nested cache.
 ```js
 const memoizedSelector = kashe(selector);
 
-const inboxedSelector = inboxed(selector);
-const boxedSelector = boxed(selector);
+const inboxedSelector = inboxed(memoizedSelector);
+const boxedSelector = boxed(memoizedSelector);
 
 // state1 !== state2. selectors would use different caches, memoizedSelector included
 inboxedSelector(state1, data) !== inboxedSelector(state2, data)
