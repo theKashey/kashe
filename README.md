@@ -26,7 +26,7 @@ The downside of `useMemo` is React. You cannot use it outside of Functional Comp
 What about `reselect`, a tool powering up all the `redux` ecosystem? Still - __single cache item__. 
 
 - __Is it server-side friendly?__ Nope, server handles many requests from many clients, and memoized value is constantly got wiped.
-- __Is it saver-side _safe_?__ Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
+- __Is it server-side _safe_?__ Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
 - __Is it test friendly?__ Nope, tests should always work the same, while memoization will make it... less predictable.
 
 So - it's time to fix all the problems above.
