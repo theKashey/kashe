@@ -29,7 +29,9 @@ What about `reselect`, a tool powering up all the `redux` ecosystem? Still - __s
 - __Is it server-side _safe_?__ Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
 - __Is it test friendly?__ Nope, tests should always work the same, while memoization will make it... less predictable.
 
-So - it's time to fix all the problems above.
+So - it's time to fix all the problems above. Wanna know more - [read the article](https://dev.to/thekashey/memoization-forget-me-bomb-34kh)
+
+> In short - to better REMEMBER something, you have to better FORGET it
 
 # API
 - kashe - memoization
