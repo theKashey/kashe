@@ -1,0 +1,11 @@
+{
+  "name": "benchmarks",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "benchmark": "^2.1.4",
+    "memoize-one": "^5.0.4"
+  }
+}

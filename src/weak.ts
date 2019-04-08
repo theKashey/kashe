@@ -1,6 +1,6 @@
 import functionDouble from "function-double";
 
-import {createStrongStorage, createWeakStorage} from "./weakStorage";
+import {createWeakStorage} from "./weakStorage";
 import {WeakStorage} from "./types";
 
 type WeakStorageCreator = () => WeakStorage;
@@ -22,7 +22,7 @@ const popCache = (cache: WeakStorage) => {
 
 const addKashePrefix = (name: string) => `kashe-${name}`;
 
-function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage) {
+export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage) {
   return function kasheCreator<Arg extends object, T extends any[], Return>
   (
     func: (x: Arg, ...rest: T) => Return,
@@ -44,6 +44,8 @@ function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage
   }
 }
 
+export const kashe = weakMemoizeCreator(createWeakStorage);
+
 function weakKasheFactory<T extends any[], Return>
 (func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
   const cache = createWeakStorage();
@@ -59,13 +61,10 @@ function weakKasheFactory<T extends any[], Return>
     return localCache.set(
       cacheArg,
       // @ts-ignore
-      func(...args)
+      func.apply(...args)
     );
   }
 }
-
-export const kashe = weakMemoizeCreator(createWeakStorage);
-export const strongMemoize = weakMemoizeCreator(createStrongStorage);
 
 export function swap<T, K, R>(fn: (t: T, k: K) => R): (k: K, T: T) => R {
   return (k: K, t: T) => fn(t, k)

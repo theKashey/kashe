@@ -147,7 +147,7 @@ memoized(state) !== memoized(state);
 ```
 
 #### Size
-1.14 kb
+1.01 kb
 
 # Cook-book
 
@@ -288,6 +288,22 @@ const mapStateToProps = () => {
 
 # See also
 The nearest analog of `kashe` is [weak-memoize](https://github.com/emotion-js/emotion/tree/master/packages/weak-memoize), but it does accept only one argument.
+
+# Speed
+```html
+// a simple one argument function
+memoize-one one argument  x 58,277,071 ops/sec ±1.60% (87 runs sampled)
+kashe       one argument  x 19,724,367 ops/sec ±0.76% (91 runs sampled)
+
+// a simple two arguments function
+memoize-one two arguments x 42,526,871 ops/sec ±0.77% (90 runs sampled)
+kashe       two arguments x 16,929,449 ops/sec ±0.84% (89 runs sampled)
+
+// using more than one object to call - memoize-one is failing, while kashe still works
+// PS: multiply results by 2 
+memoize-one    two states x   308,917 ops/sec ±0.56% (92 runs sampled)
+kashe          two states x 8,992,170 ops/sec ±0.96% (83 runs sampled)
+```
 
 # Kashe-y?
 When I first time I heard my nickname - `kashey` pronounces as `cache` - I decides to create a caching library one day. Here we go.
