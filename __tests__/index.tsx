@@ -82,6 +82,27 @@ describe('Weak', () => {
       expect(r1).toBe(z1);
     });
 
+    it('inboxed nested', () => {
+      let cnt = 0;
+      const fn1 = () => cnt++;
+      const fn2 = () => cnt++;
+      const kfn1 = kashe(fn1);
+      const kfn2 = kashe(fn2);
+
+      const obj = {};
+
+      const v1 = kfn1(obj);
+      const v2 = kfn2(obj);
+
+      expect(v1).toBe(kfn1(obj));
+      expect(v2).toBe(kfn2(obj));
+      expect(v1).not.toBe(v2);
+
+      const ifn = inboxed((st) => [kfn1(st), kfn2(st)]);
+
+      expect(ifn(obj, obj)).toEqual([2, 3]);
+      expect(ifn(obj, obj)).toEqual([2, 3]);
+    });
     const forkedFn1 = fork(fn1);
     const forkedFn2 = fork(fn1);
 

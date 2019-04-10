@@ -22,14 +22,29 @@ const popCache = (cache: WeakStorage) => {
 
 const addKashePrefix = (name: string) => `kashe-${name}`;
 
+const getCacheFor = (fn: any, cacheCreator: () => WeakStorage) => {
+  if (!cacheOverride) {
+    return;
+  }
+  const cache = cacheOverride.get([fn]);
+  if (cache) {
+    return cache.value;
+  }
+  return cacheOverride.set(
+    [fn],
+    cacheCreator()
+  );
+};
+
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage) {
   return function kasheCreator<Arg extends object, T extends any[], Return>
   (
     func: (x: Arg, ...rest: T) => Return,
     cache: WeakStorage = cacheCreator()
   ): (x: Arg, ...rest: T) => Return {
+    const _this_ = {func};
     return functionDouble((...args: any[]) => {
-      const localCache = cacheOverride || cache;
+      const localCache = getCacheFor(_this_, cacheCreator) || cache;
       const test = localCache.get(args);
       if (test) {
         return test.value;
@@ -61,7 +76,7 @@ function weakKasheFactory<T extends any[], Return>
     return localCache.set(
       cacheArg,
       // @ts-ignore
-      func.apply(...args)
+      func(...args)
     );
   }
 }
