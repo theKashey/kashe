@@ -12,6 +12,7 @@
     "release": "ts-react-toolbox release",
     "lint": "ts-react-toolbox lint",
     "static": "ts-react-toolbox publish",
+    "prepublish": "yarn build",
     "format": "ts-react-toolbox format",
     "analyze": "ts-react-toolbox analyze"
   },
