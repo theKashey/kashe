@@ -37,7 +37,10 @@ const getCacheFor = (fn: any, cacheCreator: () => WeakStorage) => {
 };
 
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage) {
-  return function kasheCreator<Arg extends object, T extends any[], Return>
+  /**
+   * memoizes a function
+   */
+  return function kashe<Arg extends object, T extends any[], Return>
   (
     func: (x: Arg, ...rest: T) => Return,
     cache: WeakStorage = cacheCreator()
@@ -87,12 +90,20 @@ export function swap<T, K, R>(fn: (t: T, k: K) => R): (k: K, T: T) => R {
 
 type BoxedCall<T extends any[], K> = (state: object, ...rest: T) => K;
 
+/**
+ * Prepends function with an additional argument, which would be used as a "box" key layer
+ * @param fn
+ */
 export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
   return kashe((_, ...rest: T) => fn(...rest));
 }
 
 const localCacheCreator = kashe((_) => createWeakStorage());
 
+/**
+ * Prepends function with an additional argument, which would be used as "cache-dimension" key later
+ * @param fn
+ */
 export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
   const factory = weakKasheFactory(
     cacheVariation => {
@@ -111,11 +122,18 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T,
   return (_, ...rest: T) => factory(_)(...rest);
 }
 
-export function fork<T extends any[], K>(fn: (...args: T) => K): (...args: T) => K {
+/**
+ * Forks internal cache, creating another cache dimension
+ * @param fn - function to memoize
+ * @param [options]
+ * @param [options.singleton=false] force single variant for an internal cache
+ */
+export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { singleton?: boolean }): (...args: T) => K {
   const cache = localCacheCreator({});
+  const genLocalCache = () => localCacheCreator({});
   return (...rest: T) => {
     try {
-      pushCache(cache);
+      pushCache((!options || !options.singleton && getCacheFor(cache, genLocalCache)) || cache);
       return fn(...rest);
     } finally {
       popCache(cache);
