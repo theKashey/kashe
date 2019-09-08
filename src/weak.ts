@@ -14,7 +14,13 @@ const pushCache = (cache: WeakStorage) => {
 };
 
 const popCache = (cache: WeakStorage) => {
-  if (cache !== cacheStack.pop()) {
+  const popped = cacheStack.pop();
+  if (cache !== popped) {
+    console.error({
+      expected: cache,
+      given: popped,
+      stack: cacheStack,
+    };
     throw new Error('kashe synchronization failed')
   }
   cacheOverride = cacheStack[cacheStack.length - 1];
@@ -36,7 +42,7 @@ const getCacheFor = (fn: any, cacheCreator: () => WeakStorage) => {
   );
 };
 
-export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage) {
+export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
   /**
    * memoizes a function
    */
@@ -48,13 +54,14 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
     const _this_ = {func};
     return functionDouble((...args: any[]) => {
       const localCache = getCacheFor(_this_, cacheCreator) || cache;
-      const test = localCache.get(args);
+      const usedArgs = mapper ? args.map(mapper) : args;
+      const test = localCache.get(usedArgs);
       if (test) {
         return test.value;
       }
 
       return localCache.set(
-        args,
+        usedArgs,
         // @ts-ignore
         func(...args)
       );
@@ -63,6 +70,7 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
 }
 
 export const kashe = weakMemoizeCreator(createWeakStorage);
+export const weakKashe = weakMemoizeCreator(createWeakStorage, (arg, i) => i > 0 ? String(arg) : arg);
 
 function weakKasheFactory<T extends any[], Return>
 (func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
@@ -132,11 +140,12 @@ export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { sing
   const cache = localCacheCreator({});
   const genLocalCache = () => localCacheCreator({});
   return (...rest: T) => {
+    const cacheOverride = ((!options || !options.singleton) ? getCacheFor(cache, genLocalCache) : null) || cache;
     try {
-      pushCache((!options || !options.singleton && getCacheFor(cache, genLocalCache)) || cache);
+      pushCache(cacheOverride);
       return fn(...rest);
     } finally {
-      popCache(cache);
+      popCache(cacheOverride);
     }
   }
 }

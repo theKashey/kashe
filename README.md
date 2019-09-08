@@ -34,7 +34,7 @@ So - it's time to fix all the problems above. Wanna know more - [read the articl
 > In short - to better REMEMBER something, you have to better FORGET it
 
 # API
-- kashe - memoization
+- kashe/weaKashe - memoization
 - box - prefixed memoization
 - inbox - nested prefixed memoization
 - fork - nested memoization
@@ -56,6 +56,20 @@ const complexSelector = (state, field) => ({ field: state[field]});
 const memoizedComplexSelector = kashe(complexSelector);
 memoizedComplexSelector(state, 'a') === memoizedComplexSelector(state, 'a');
 ```
+### weakKashe
+For the cases like selectors and mappers some times it's easier to use __not strict__ cache.
+```js
+const {weakKashe} from 'kashe';
+
+const weakMap = weakKashe((data, iterator, ...deps) => data.map(iterator)); 
+
+const derived = weakMap(data, line => ({...line, somethingElse}), localVariable1);
+```
+In this case:
+- cache would be stored in the `data`
+- arguments would be matched not by "strict" equality, but by the "toString" equality.
+- as a result, the second `kashe` argument, always the new function, would not _destroy_ cache
+- keep in mind - this is not 100% safe operation. Consider adding _local scope_ variables to control cache precision. 
 
 ### boxed
 - `boxed(function(...args)=>T):(_, ...args)=>T` - "prefixes" a call to function with "weakmappable" argument. __All arguments__ shall be equal to return a cached result.

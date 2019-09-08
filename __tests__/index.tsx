@@ -1,4 +1,4 @@
-import {kashe, boxed, inboxed, fork} from "../src/weak";
+import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak";
 
 describe('Weak', () => {
   it('weak memoize', () => {
@@ -34,6 +34,24 @@ describe('Weak', () => {
 
     expect(weakResult2).toBe(weakProduce(state2, 1, 2));
     expect(weakResult1_2).toBe(weakProduce(state1, 2, 2));
+  });
+
+  it('weak kashe', () => {
+    const kasheMap = kashe((data: any[], iterator: (x: number) => number) => data.map(iterator));
+    const weakMap = weakKashe((data: any[], iterator: (x: number) => number) => data.map(iterator));
+
+    const map = (x: number) => x + 1;
+    const data = [0, 1];
+
+    expect(kasheMap(data, map)).toBe(kasheMap(data, map));
+    expect(weakMap(data, map)).toBe(weakMap(data, map));
+
+    expect(kasheMap(data, x => x + 1)).not.toBe(kasheMap(data, x => x + 1));
+    expect(weakMap(data, x => x + 1)).toBe(weakMap(data, x => x + 1));
+    expect(weakMap(data, x => x + 1, 1)).toBe(weakMap(data, x => x + 1, 1));
+    expect(weakMap(data, x => x + 1, 1)).toBe(weakMap(data, x => x + 1, 2));
+    //
+    expect(weakMap(data, x => x + 1)).toEqual([1, 2]);
   });
 
   describe('nested memoization', () => {
