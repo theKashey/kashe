@@ -1,6 +1,6 @@
 {
   "name": "kashe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Stateless memoization replacement for reselect and memoize-one",
   "main": "dist/es5/index.js",
   "scripts": {

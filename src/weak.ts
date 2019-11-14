@@ -20,7 +20,7 @@ const popCache = (cache: WeakStorage) => {
       expected: cache,
       given: popped,
       stack: cacheStack,
-    };
+    });
     throw new Error('kashe synchronization failed')
   }
   cacheOverride = cacheStack[cacheStack.length - 1];
