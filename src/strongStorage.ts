@@ -10,7 +10,10 @@ export const createStrongStorage = (startIndex = 0, endIndex = Infinity, storage
         reads++;
         const test = storage.get(args[i]);
         if (test) {
-          if (test.arguments.every((v: any, index: number) => v === args[index])) {
+          if (
+            test.arguments.length === max &&
+            test.arguments.every((v: any, index: number) => v === args[index])
+          ) {
             return {
               value: test.storedValue,
               index: i,
@@ -21,7 +24,7 @@ export const createStrongStorage = (startIndex = 0, endIndex = Infinity, storage
     }
     if (!reads) {
       console.log('arguments given', args);
-      throw new Error('No weak-mappable object found to read a result from');
+      throw new Error('No weak-mappable object found to read a cache from. Given [' + args.map(a => typeof a).join(', ')+']');
     }
 
     return undefined;

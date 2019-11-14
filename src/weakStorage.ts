@@ -10,14 +10,16 @@ export const createWeakStorage = (indexId = 0, storage: WeakMappable = new WeakM
     const test = storage.get(args[indexId]);
     if (test) {
       const a = test.arguments;
-      for (let i = 0; i < a.length; ++i) {
-        if (a[i] !== args[i]) {
-          return undefined;
+      if (a.length === args.length) {
+        for (let i = 0; i < a.length; ++i) {
+          if (a[i] !== args[i]) {
+            return undefined;
+          }
         }
-      }
-      return {
-        value: test.storedValue,
-        index: indexId,
+        return {
+          value: test.storedValue,
+          index: indexId,
+        }
       }
     }
 

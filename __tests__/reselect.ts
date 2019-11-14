@@ -25,6 +25,17 @@ describe('Reselect wrapper', () => {
     expect(selector.recomputations()).toBe(3);
   });
 
+  it('createSelector multi argument', () => {
+    const cache = {};
+    const pickState = (state: any, pick: any = 'not-set') => state[pick] || "undefined";
+    const selector: any = createSelector(pickState, () => cache, a => [a]);
+
+    const state = {a: 1};
+    expect(selector(state)).toEqual(["undefined"]);
+    expect(selector(state, 'a')).toEqual([1]);
+
+  });
+
   it('fork selectors', () => {
     const pickState = (state: any) => state.a;
     const selector = createSelector(pickState, a => [a[1]]);

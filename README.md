@@ -240,6 +240,20 @@ const unknownValue = dataSelector(state, { sliceId: 1 });
 // `kashe/reselect` - would return `slice1Value`
 ```
 
+## Troubleshoting
+#### solving `Error: No weak-mappable object found to read a cache from.`
+If all selectors returned a non "weak-mappable" object (like array, object, function, symbol) - kashe would throw.
+This is intentional, as long as it stores cache inside such objects, and without them it could not work.
+However, if you think that it should work that way - just give it that "cache"
+```js
+const cache = {};
+const selector = createSelector(
+  someSelector, 
+  () => cache,  // <---- cache for a selector
+  selectedData => {/*...*/}
+);
+```
+
 # Memoize-one
 `kashe` could not replace `memoize-one` as long as it requires at least one argument to be a object or array.
 But if at least one is in list - go for it.

@@ -37,8 +37,8 @@ describe('Weak', () => {
   });
 
   it('weak kashe', () => {
-    const kasheMap = kashe((data: any[], iterator: (x: number) => number) => data.map(iterator));
-    const weakMap = weakKashe((data: any[], iterator: (x: number) => number) => data.map(iterator));
+    const kasheMap = kashe((data: any[], iterator: (x: number) => number) => data.map(i => iterator(i)));
+    const weakMap = weakKashe((data: any[], iterator: (x: number) => number) => data.map(i => iterator(i)));
 
     const map = (x: number) => x + 1;
     const data = [0, 1];
@@ -49,7 +49,7 @@ describe('Weak', () => {
     expect(kasheMap(data, x => x + 1)).not.toBe(kasheMap(data, x => x + 1));
     expect(weakMap(data, x => x + 1)).toBe(weakMap(data, x => x + 1));
     expect(weakMap(data, x => x + 1, 1)).toBe(weakMap(data, x => x + 1, 1));
-    expect(weakMap(data, x => x + 1, 1)).toBe(weakMap(data, x => x + 1, 2));
+    expect(weakMap(data, x => x + 1, 1)).not.toBe(weakMap(data, x => x + 1, 2));
     //
     expect(weakMap(data, x => x + 1)).toEqual([1, 2]);
   });
