@@ -1,7 +1,7 @@
 {
   "name": "kashe",
   "version": "1.0.2",
-  "description": "Stateless memoization replacement for reselect and memoize-one",
+  "description": "Stateless weak memoization replacement for reselect and memoize-one",
   "main": "dist/es5/index.js",
   "scripts": {
     "test": "ts-react-toolbox test",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "size-limit": "^0.21.1",
     "ts-jest": "^24.0.0",
-    "ts-react-toolbox": "^0.2.2",
+    "ts-react-toolbox": "^0.2.20",
     "typescript": "^3.3.3333"
   },
   "engines": {
@@ -42,10 +42,6 @@
     "performance",
     "weak"
   ],
-  "resolutions": {
-    "typescript": "^3.0.0",
-    "ts-react-toolbox/typescript": "^3.0.0"
-  },
   "dependencies": {
     "function-double": "^1.0.4",
     "reselect": "^4.0.0"
