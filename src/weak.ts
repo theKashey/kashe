@@ -69,7 +69,37 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
   }
 }
 
+/**
+ * weak memoization helper.
+ * Uses the __first__ given argument to store result.
+ *
+ * `kache`'s API is equal to any other single-line memoization library except the requirement for
+ * the first argument to be an object.
+ *
+ * 💡 hint: sometimes it worth to move some arguments, put pick the "best one" to be the first
+ *
+ * @param {Object} argument0 - first argument has to be {object}, {array} or {function}
+ * @param argument1 - any other, as well we any number or arguments
+ *
+ * @see https://github.com/theKashey/kashe#kashe
+ * @example
+ * // create a selector, which returns a new array using `array.filter` every time
+ * const badSelector = (array) => array.filter(somehow)
+ * // make it return the same object for the same array called.
+ * const goodSelector = kashe(badSelector);
+ */
 export const kashe = weakMemoizeCreator(createWeakStorage);
+
+/**
+ * a special version of {@link kashe} which does not strictly checks arg1+.
+ * Could be used to bypass equality check, however use with caution
+ *
+ * @see https://github.com/theKashey/kashe#weakkashe
+ * @example
+ * const weakMap = weakKashe((data, iterator, ...deps) => data.map(iterator));
+ * const derived = weakMap(data, line => ({...line, somethingElse}), localVariable1);
+ * // 👆 second argument is changing every time, but as long as it's __String representation__ is the same - result is unchanged.
+ */
 export const weakKashe = weakMemoizeCreator(createWeakStorage, (arg, i) => i > 0 ? String(arg) : arg);
 
 function weakKasheFactory<T extends any[], Return>
@@ -99,8 +129,22 @@ export function swap<T, K, R>(fn: (t: T, k: K) => R): (k: K, T: T) => R {
 type BoxedCall<T extends any[], K> = (state: object, ...rest: T) => K;
 
 /**
- * Prepends function with an additional argument, which would be used as a "box" key layer
- * @param fn
+ * Prepends a single function with an additional argument, which would be used as a "box" key layer.
+ * Literally "puts function in a box"
+ *
+ * @param {Function} fn - function to "box"
+ *
+ * @see https://github.com/theKashey/kashe#boxed
+ * @see {@link inboxed} - for nested caches.
+ *
+ * @example
+ * const addTwo = (a,b) => a+b; // could not be "kashe" memoized
+ * const bAddTwo = boxed(addTwo); // "box" it
+ * const cacheKey = {}; // any object
+ * // 👇 not function takes 3 arguments
+ * bAddTwo(cacheKey, 1, 2) === bAddTwo(cacheKey, 1, 2) === 3
+ * // result is "stored in a first argument" - using another key equivalent to cache clear.
+ * bAddTwo(otherCacheKey, 1, 2) // -> a new call
  */
 export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
   return kashe((_, ...rest: T) => fn(...rest));
@@ -109,8 +153,23 @@ export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K
 const localCacheCreator = kashe((_) => createWeakStorage());
 
 /**
- * Prepends function with an additional argument, which would be used as "cache-dimension" key later
- * @param fn
+ * Prepends with additional cache-key, which will be used for any other {@link kashe} call made inside.
+ * inboxed scopes all the nested caches behind a first argument, creating a "sub cache".
+ *
+ * inboxed is about __isolation__.
+ *
+ * @param {Function} fn function to "box"
+ *
+ * @see {@link boxed} for non-nested caches.
+ * @see https://github.com/theKashey/kashe#inboxed
+ * @example
+ * const kashedSelector = kashe((state) => ({state, counter: counter++})); // returns unique object every all
+ * const inboxedSelector = inboxed(kashedSelector);
+ *
+ * ✅ kashedSelector(state) === kashedSelector(state)
+ * const cacheKey = {}; // any object
+ * 👉 inboxedSelector(cacheKey, state) === inboxedSelector(cacheKey, state)
+ * ✅ inboxedSelector({}, state) !== inboxedSelector({}, state)
  */
 export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
   const factory = weakKasheFactory(
@@ -131,10 +190,14 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T,
 }
 
 /**
- * Forks internal cache, creating another cache dimension
+ * Creates a clone of a kash-ed function with another internal cache.
+ * Useful for isolation one kashe call from another
  * @param fn - function to memoize
  * @param [options]
- * @param [options.singleton=false] force single variant for an internal cache
+ * @param [options.singleton=false] force single variant for all internal cache calls
+ *
+ * @see {@link inboxed}
+ * @see https://github.com/theKashey/kashe#fork
  */
 export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { singleton?: boolean }): (...args: T) => K {
   const cache = localCacheCreator({});

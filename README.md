@@ -34,7 +34,7 @@ So - it's time to fix all the problems above. Wanna know more - [read the articl
 > In short - to better REMEMBER something, you have to better FORGET it
 
 # API
-- kashe/weaKashe - memoization
+- kashe/weakKashe - memoization
 - box - prefixed memoization
 - inbox - nested prefixed memoization
 - fork - nested memoization
@@ -73,7 +73,7 @@ In this case:
 
 ### boxed
 - `boxed(function(...args)=>T):(_, ...args)=>T` - "prefixes" a call to function with "weakmappable" argument. __All arguments__ shall be equal to return a cached result.
-Use `boxed` to make any function kashe-memoizable, but adding a leading argument. 
+Use `boxed` to make any function kashe-memoizable, buy adding a leading argument. 
 ```js
 import {boxed} from 'kashe';
 
@@ -90,7 +90,7 @@ bAddTwo(cacheKey, 1, 2) // -> a new call - original result replaced by 10+20
 
 ### inboxed
 - `inboxed(function(...args)=>T):(_, ...args)=>T` - "nest" a call to a function with "weakmappable" argument.
-Use `inboxed` to make any function kashe-memoizable, but adding a leading argument. 
+Use `inboxed` to make any function kashe-memoizable, buy adding a leading argument. 
 
 > Diffence from `boxed` - `inboxed` "nests" all the cache below it. 
 ```js
