@@ -18,7 +18,7 @@ Memoization is cool technique. But is it reliable and _safe_?
 
 What is the difference between `lodash.memoize`, `memoize-one`, and `React.useMemo`?
 
-- [lodash.memoize](https://lodash.com/docs/4.17.11#memoize) is a cool thing. But but default it has endless cache size.
+- [lodash.memoize](https://lodash.com/docs/4.17.11#memoize) is a cool thing. But by default it has endless cache size.
 - [memoize-one only](https://github.com/alexreardon/memoize-one) remembers the latest arguments and result. No need to worry about __cache busting__ mechanisms such as maxAge, maxSize, exclusions and so on which can be prone to __memory leaks__.
 - [react.useMemo](https://reactjs.org/docs/hooks-reference.html#usememo) is the greatest of all. Still memoize only __one__ call, but doing it on per-component level.
 The downside of `useMemo` is React. You cannot use it outside of Functional Component.
