@@ -156,7 +156,7 @@ const localCacheCreator = kashe((_) => createWeakStorage());
  * Prepends with additional cache-key, which will be used for any other {@link kashe} call made inside.
  * inboxed scopes all the nested caches behind a first argument, creating a "sub cache".
  *
- * inboxed is about __isolation__.
+ * inboxed is about __isolation__. Or creating parallel caches.
  *
  * @param {Function} fn function to "box"
  *
@@ -196,7 +196,7 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T,
  * @param [options]
  * @param [options.singleton=false] force single variant for all internal cache calls
  *
- * @see {@link inboxed}
+ * @see {@link inboxed} for argument based cache separation
  * @see https://github.com/theKashey/kashe#fork
  */
 export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { singleton?: boolean }): (...args: T) => K {
