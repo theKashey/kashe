@@ -23,7 +23,8 @@ What is the difference between `lodash.memoize`, `memoize-one`, and `React.useMe
 - [react.useMemo](https://reactjs.org/docs/hooks-reference.html#usememo) is the greatest of all. Still memoize only __one__ call, but doing it on per-component level.
 The downside of `useMemo` is React. You cannot use it outside of Functional Component.
 
-What about `reselect`, a tool powering up all the `redux` ecosystem? Still - __single cache item__. 
+What about `reselect`, a tool powering up all the `redux` ecosystem? Still - __single cache item__.
+> Reselect 5.0 migrated to `weakMapMemoize` which effectively is a `kashe`
 
 - __Is it server-side friendly?__ Nope, server handles many requests from many clients, and memoized value is constantly got wiped.
 - __Is it server-side _safe_?__ Oh no! Cross request memoization could be a killer! What if memoized value not got rejected??
@@ -35,12 +36,13 @@ So - it's time to fix all the problems above. Wanna know more - [read the articl
 
 # API
 - kashe/weakKashe - memoization
+## Supporting API
 - box - prefixed memoization
 - inbox - nested prefixed memoization
 - fork - nested memoization
 
-> TLDR: `kashe` uses passed arguments as a key to an internal WeakMap to store a result. It does not store anything anywhere - 
-it's always _weak_. __Once argument is gone - data is gone__.
+> TLDR: `kashe` uses passed arguments as a key to an internal WeakMap to store a result. It does not store anything permanently - 
+it's always _weak_. __Once argument used as a key is "gone" - data is "gone"__.
 
 ### kashe
 - `kashe(function: T):T` - transparent weak memoization. Requires first argument to be an object or array or function. The
@@ -56,6 +58,10 @@ const complexSelector = (state, field) => ({ field: state[field]});
 const memoizedComplexSelector = kashe(complexSelector);
 memoizedComplexSelector(state, 'a') === memoizedComplexSelector(state, 'a');
 ```
+`kashe` uses nested memoization, creating a cascade of caches for every "weakmappable" argument found.
+This greatly increases cache size and hit rate.
+
+
 ### weakKashe
 For the cases like selectors and mappers some times it's easier to use __not strict__ cache.
 ```js
@@ -73,7 +79,11 @@ In this case:
 
 ### boxed
 - `boxed(function(...args)=>T):(_, ...args)=>T` - "prefixes" a call to function with "weakmappable" argument. __All arguments__ shall be equal to return a cached result.
-Use `boxed` to make any function kashe-memoizable, buy adding a leading argument. 
+Use `boxed` to make any function kashe-memoizable, buy adding a leading argument.
+
+__Literally "puts function in a box"__.
+
+> `boxed` effectively creates a "fork" in the cache letting you fine control execution
 ```js
 import {boxed} from 'kashe';
 
@@ -92,7 +102,10 @@ bAddTwo(cacheKey, 1, 2) // -> a new call - original result replaced by 10+20
 - `inboxed(function(...args)=>T):(_, ...args)=>T` - "nest" a call to a function with "weakmappable" argument.
 Use `inboxed` to make any function kashe-memoizable, buy adding a leading argument. 
 
-> Diffence from `boxed` - `inboxed` "nests" all the cache below it. 
+> Difference from `boxed` - `inboxed` "nests" all the cache below it.
+It creates a micro-universe giving you fine control over caching behavior and purging caches. Think concurrent server environment.
+
+`inboxed` will affect every other `kashe` call inside it.
 ```js
 import {inboxed} from 'kashe';
 
@@ -150,7 +163,7 @@ boxedSelector(state, data2); // !!!! result is still stored in `state`
 ```
 
 ### fork
-- `fork(function: T):T` - create a copy of a selector, with overiden internal cache.
+- `fork(function: T):T` - create a copy of a selector, with overidden internal cache.
 `fork` has the same effect `inbox` has, but not adding a leading argument. First argument still expected to be an object, array, or a function.
 ```js
 const selector = (state) => ({state});

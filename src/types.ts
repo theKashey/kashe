@@ -1,6 +1,6 @@
 export interface WeakResult {
   value: any;
-  index: number;
+  // index: number;
 }
 
 export interface WeakStorage {
@@ -9,8 +9,8 @@ export interface WeakStorage {
   set(args: any[], value: any): any;
 }
 
-export interface WeakMappable {
-  get(key: any): any | undefined;
+export interface WeakMappable<T = any> {
+  get(key: any): T | undefined;
 
-  set(set: any, value: any): void;
+  set(set: any, value: T): void;
 }
