@@ -20,7 +20,7 @@ type Test = {
     weak?: Mappable<Test>;
 }
 
-const StorageKeys = 'strong' | 'weak';
+type StorageKeys = 'strong' | 'weak';
 
 export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): WeakStorage => ({
     get(args) {
@@ -50,21 +50,20 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
     set(args, value) {
         const slices = breakdownArgs(args);
         let writeTo = storage;
-        const next: Test = {weak: storage};
+        let next: Test = {weak: storage};
         for (let i = 0; i < slices.length; ++i) {
-            const [storageKey, Constructor]:[StorageKeys, Mappable] = isWeakable(slices[i]) ? ['weak', WeakMap] : ['strong', Map];
-            const writeTo = next[storageKey];
+            const [storageKey, factory]:[StorageKeys,() => Mappable] = isWeakable(slices[i]) ? ['weak', () => new WeakMap()] : ['strong', () => new Map()];
+            writeTo = next[storageKey];
             if (!writeTo) {
-                next[storageKey] = writeTo = new Constructor();
+                next[storageKey] = writeTo = factory();
             }
             next = writeTo.get(slices[i]);
             if (!next || !next[storageKey]) {
                 next = {
-                    [storageKey]: new Constructor()
+                    [storageKey]: factory()
                 };
                 writeTo.set(slices[i], next);
             }
-            writeTo = next.storageKey!;
         }
 
         next.storedValue = value;
