@@ -64,21 +64,21 @@ describe('Weak', () => {
         {
             const result1 = test(arg1, 1, arg3_1);
             const result2 = test(arg1, 2, arg3_1);
-            // arg2 bypassed cache
-            expect(result1).not.toBe(test(arg1, 1, arg3_1));
-            expect(result2).not.toBe(test(arg1, 2, arg3_1));
+            // arg2 stored in v3 position
+            expect(result1).toBe(test(arg1, 1, arg3_1));
+            expect(result2).toBe(test(arg1, 2, arg3_1));
         }
         {
             const result1 = test(arg1, arg3_1, 1);
             const result2 = test(arg1, arg3_2, 2);
-            // result is saved in arg3
+            // result is saved in save v3 position
             expect(result1).toBe(test(arg1, arg3_1, 1));
             expect(result2).toBe(test(arg1, arg3_2, 2));
         }
         {
             const result1 = test(arg1, 1, arg3_1);
             const result2 = test(arg1, 2, arg3_2);
-            // arg2 bypassed cache
+            // arg3 bypassed cache
             expect(result1).toBe(test(arg1, 1, arg3_1));
             expect(result2).toBe(test(arg1, 2, arg3_2));
         }

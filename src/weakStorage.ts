@@ -1,93 +1,73 @@
-import {WeakMappable, WeakStorage} from "./types";
+import {Mappable, WeakStorage} from "./types";
 import {isWeakable} from "./utils";
 
 export const breakdownArgs = (args: any[]) => {
-    let saveSlice = [];
+    let weaks = [];
+    let strongs = [];
     for (let i = 0; i < args.length; i++) {
         if (isWeakable(args[i])) {
-            saveSlice.push(args[i]);
+            weaks.push(args[i]);
+        } else {
+            strongs.push(args[i])
         }
     }
-    return saveSlice;
+    return [...weaks, ...strongs];
 }
 
 type Test = {
-    arguments?: any[];
     storedValue?: any;
-    storage?: WeakMappable<Test>;
+    strong?: Mappable<Test>;
+    weak?: Mappable<Test>;
 }
 
-const testArgs = (test: Test, args: any[]) => {
-    const a = test.arguments;
-    if (!a) {
-        return undefined;
-    }
-    if (a.length === args.length) {
-        for (let i = 0; i < a.length; ++i) {
-            if (a[i] !== args[i]) {
-                return undefined;
-            }
-        }
-        return test;
-    }
-    return undefined;
-}
+const StorageKeys = 'strong' | 'weak';
 
-export const createWeakStorage = (storage: WeakMappable<Test> = new WeakMap()): WeakStorage => ({
+export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): WeakStorage => ({
     get(args) {
         const slices = breakdownArgs(args);
         if (!slices.length) {
-            throw new Error(`No weak-mappable (object, function, symbol) arguments found.`);
+            throw new Error(`No weak-mappable (object, function, symbol) argument found.`);
         }
         let readFrom = storage;
-        console.log('get breakdown', slices);
+        let test: Test | undefined = {weak: storage}
         for (let i = 0; i < slices.length; ++i) {
-            const test = readFrom.get(slices[i]);
-            if (!test || !test.storage) {
-                console.log('get: no forward');
+            const storageKey:StorageKeys = isWeakable(slices[i]) ? 'weak' : 'strong';
+            readFrom = test[storageKey];
+            test = readFrom.get(slices[i]);
+            if (!test) {
+                // get: no forward
                 return undefined
             }
-            readFrom = test.storage;
         }
         if (!readFrom) {
             return undefined;
         }
-        const test = readFrom.get(slices[0]);
-        if (test) {
-            const storedValue = testArgs(test, args);
-            if (storedValue) {
-                return {
-                    value: test.storedValue,
-                }
-            } else {
-                console.log('get: arg mismatch');
-            }
-        } else {
-            console.log('get: no key');
+        return {
+            value: test.storedValue,
         }
-
-        return undefined;
     },
 
     set(args, value) {
         const slices = breakdownArgs(args);
-        console.log('set breakdown', slices);
         let writeTo = storage;
+        const next: Test = {weak: storage};
         for (let i = 0; i < slices.length; ++i) {
-            let next = writeTo.get(slices[i]);
-            if (!next || !next.storage) {
+            const [storageKey, Constructor]:[StorageKeys, Mappable] = isWeakable(slices[i]) ? ['weak', WeakMap] : ['strong', Map];
+            const writeTo = next[storageKey];
+            if (!writeTo) {
+                next[storageKey] = writeTo = new Constructor();
+            }
+            next = writeTo.get(slices[i]);
+            if (!next || !next[storageKey]) {
                 next = {
-                    storage: new WeakMap()
+                    [storageKey]: new Constructor()
                 };
                 writeTo.set(slices[i], next);
             }
-            writeTo = next.storage!;
+            writeTo = next.storageKey!;
         }
-        writeTo.set(slices[0], {
-            storedValue: value,
-            arguments: args,
-            storage: undefined
-        });
+
+        next.storedValue = value;
         return value;
     },
 });
