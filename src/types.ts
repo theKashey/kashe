@@ -9,7 +9,7 @@ export interface WeakStorage {
   set(args: any[], value: any): any;
 }
 
-export interface WeakMappable<T = any> {
+export interface Mappable<T = any> {
   get(key: any): T | undefined;
 
   set(set: any, value: T): void;
