@@ -23,26 +23,24 @@ type Test = {
     weak?: Mappable<Test>;
 }
 
-type StorageKeys = 'strong' | 'weak';
-
 export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): WeakStorage => ({
     get(args) {
         const [weaks, strongs] = breakdownArgs(args);
         if (!weaks.length) {
             throw new Error(`No weak-mappable (object, function, symbol) argument found.`);
         }
-        let readFrom = storage;
+        let readFrom: Mappable<Test> | undefined = storage;
         let test: Test | undefined = {weak: storage}
         for (let i = 0; i < weaks.length; ++i) {
             readFrom = test.weak;
-            test = readFrom.get(weaks[i]);
+            test = readFrom?.get(weaks[i]);
             if (!test) {
                 return undefined
             }
         }
         for (let i = 0; i < strongs.length; ++i) {
             readFrom = test.strong;
-            test = readFrom.get(strongs[i]);
+            test = readFrom?.get(strongs[i]);
             if (!test) {
                 return undefined
             }
@@ -57,8 +55,8 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
 
     set(args, value) {
         const [weaks,strongs] = breakdownArgs(args);
-        let writeTo = storage;
-        let next: Test = {weak: storage};
+        let writeTo: Mappable<Test> | undefined = storage;
+        let next: Test | undefined = {weak: storage};
 
         for (let i = 0; i < weaks.length; ++i) {
             writeTo = next.weak;
@@ -68,7 +66,7 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
             next = writeTo.get(weaks[i]);
             if (!next || !next.weak) {
                 next = {
-                    weak: new WeakMap();
+                    weak: new WeakMap()
                 };
                 writeTo.set(weaks[i], next);
             }

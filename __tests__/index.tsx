@@ -1,5 +1,6 @@
 import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak";
 
+
 describe('Weak', () => {
     it('weak memoize', () => {
         let recomputations = 0;
