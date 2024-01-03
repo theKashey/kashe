@@ -56,6 +56,21 @@ describe('Weak', () => {
         expect(weakMap(data, x => x + 1)).toEqual([1, 2]);
     });
 
+    it('this memoization', () => {
+        const test = kashe(function (x: number) { return {x:x+this.x}});
+        const this1 = {x:1};
+        const this2 = {x:2};
+        const this3 = {};
+        const test1_1 = test.call(this1, 1);
+        const test2_1 = test.call(this2, 1);
+        const test1_2 = test.call(this1, 1);
+
+        expect(test1_1).toBe(test1_2);
+        expect(test1_1).not.toBe(test2_1);
+        expect(test1_1.x).toBe(2);
+        expect(test2_1.x).toBe(3);
+    });
+
     it('cascade memoization', () => {
         const test = kashe((x: any, y: any, z: any) => ({x, y, z}));
         const arg1 = {arg1:1};

@@ -52,18 +52,19 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
     cache: WeakStorage = cacheCreator()
   ): (x: Arg, ...rest: T) => Return {
     const _this_ = {func};
-    return functionDouble((...args: any[]) => {
+    return functionDouble(function (...args: any[]) {
       const localCache = getCacheFor(_this_, cacheCreator) || cache;
       const usedArgs = mapper ? args.map(mapper) : args;
-      const test = localCache.get(usedArgs);
+      const thisArgs = [this,...usedArgs];
+      const test = localCache.get(thisArgs);
       if (test) {
         return test.value;
       }
 
       return localCache.set(
-        usedArgs,
-        // @ts-ignore
-        func(...args)
+          thisArgs,
+         // @ts-ignore
+         func.apply(this,args)
       );
     }, func, {name: addKashePrefix as any});
   }
