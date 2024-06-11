@@ -1,4 +1,5 @@
 import {kashe, weakKashe, boxed, inboxed, fork} from "./weak";
+import {configureCacheModel} from './cache';
 
 
 export {
@@ -7,4 +8,5 @@ export {
   boxed,
   inboxed,
   fork,
+  configureCacheModel,
 };

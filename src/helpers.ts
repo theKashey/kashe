@@ -1,0 +1,1 @@
+export const addKashePrefix = (name: string) => `kashe-${name}`;

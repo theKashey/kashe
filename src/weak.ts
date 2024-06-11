@@ -2,45 +2,11 @@ import functionDouble from "function-double";
 
 import {createWeakStorage} from "./weakStorage";
 import {WeakStorage} from "./types";
+import {getCacheFor, getCacheOverride, withCacheScope} from "./cache";
+import {addKashePrefix} from "./helpers";
 
 type WeakStorageCreator = () => WeakStorage;
 
-const cacheStack: WeakStorage[] = [];
-let cacheOverride: WeakStorage | undefined;
-
-const pushCache = (cache: WeakStorage) => {
-  cacheStack.push(cache);
-  cacheOverride = cache;
-};
-
-const popCache = (cache: WeakStorage) => {
-  const popped = cacheStack.pop();
-  if (cache !== popped) {
-    console.error({
-      expected: cache,
-      given: popped,
-      stack: cacheStack,
-    });
-    throw new Error('kashe synchronization failed')
-  }
-  cacheOverride = cacheStack[cacheStack.length - 1];
-};
-
-const addKashePrefix = (name: string) => `kashe-${name}`;
-
-const getCacheFor = (fn: any, cacheCreator: () => WeakStorage) => {
-  if (!cacheOverride) {
-    return;
-  }
-  const cache = cacheOverride.get([fn]);
-  if (cache) {
-    return cache.value;
-  }
-  return cacheOverride.set(
-    [fn],
-    cacheCreator()
-  );
-};
 
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
   /**
@@ -52,7 +18,7 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
     cache: WeakStorage = cacheCreator()
   ): (x: Arg, ...rest: T) => Return {
     const _this_ = {func};
-    return functionDouble(function (...args: any[]) {
+    return functionDouble(function (this:any, ...args: any[]) {
       const localCache = getCacheFor(_this_, cacheCreator) || cache;
       const usedArgs = mapper ? args.map(mapper) : args;
       const thisArgs = [this,...usedArgs];
@@ -72,34 +38,34 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
 
 /**
  * weak memoization helper.
- * Uses the __first__ given argument to store result.
+ * Uses non-primitive arguments to store result. Thus NOT suitable for functions with "simple" argument. See {@link boxed} for such cases.
  *
- * `kache`'s API is equal to any other single-line memoization library except the requirement for
- * the first argument to be an object.
- *
- * 💡 hint: sometimes it worth to move some arguments, put pick the "best one" to be the first
- *
- * @param {Object} argument0 - first argument has to be {object}, {array} or {function}
- * @param argument1 - any other, as well we any number or arguments
- *
+ * `kashe`'s API is equal to any other single-line memoization library except the requirement for
+ * some arguments to be an object (or a function).
+ **
  * @see https://github.com/theKashey/kashe#kashe
  * @example
+ * ```ts
  * // create a selector, which returns a new array using `array.filter` every time
  * const badSelector = (array) => array.filter(somehow)
  * // make it return the same object for the same array called.
  * const goodSelector = kashe(badSelector);
+ * ```
  */
 export const kashe = weakMemoizeCreator(createWeakStorage);
 
 /**
  * a special version of {@link kashe} which does not strictly checks arg1+.
- * Could be used to bypass equality check, however use with caution
+ * Requires first argument to be a non-primitive value.
+ * Could be used to bypass equality check, however use with ⚠️caution and for a good reason🧑‍🏭
  *
  * @see https://github.com/theKashey/kashe#weakkashe
  * @example
+ * ```ts
  * const weakMap = weakKashe((data, iterator, ...deps) => data.map(iterator));
  * const derived = weakMap(data, line => ({...line, somethingElse}), localVariable1);
  * // 👆 second argument is changing every time, but as long as it's __String representation__ is the same - result is unchanged.
+ * ```
  */
 export const weakKashe = weakMemoizeCreator(createWeakStorage, (arg, i) => i > 0 ? String(arg) : arg);
 
@@ -108,7 +74,7 @@ function weakKasheFactory<T extends any[], Return>
   const cache = createWeakStorage();
 
   return function kasheFactory(...args: any[]) {
-    const localCache = cacheOverride || cache;
+    const localCache = getCacheOverride() || cache;
     const cacheArg = [args[indexId]];
     const test = localCache.get(cacheArg);
     if (test) {
@@ -176,14 +142,9 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T,
   const factory = weakKasheFactory(
     cacheVariation => {
       const cache = localCacheCreator(cacheVariation);
-      return (...rest: T) => {
-        try {
-          pushCache(cache);
-          return fn(...rest);
-        } finally {
-          popCache(cache);
-        }
-      }
+      return (...rest: T) =>
+        withCacheScope(cache, () => fn(...rest))
+
     }
   );
 
@@ -205,11 +166,6 @@ export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { sing
   const genLocalCache = () => localCacheCreator({});
   return (...rest: T) => {
     const cacheOverride = ((!options || !options.singleton) ? getCacheFor(cache, genLocalCache) : null) || cache;
-    try {
-      pushCache(cacheOverride);
-      return fn(...rest);
-    } finally {
-      popCache(cacheOverride);
-    }
+    return withCacheScope(cacheOverride, () => fn(...rest))
   }
 }
