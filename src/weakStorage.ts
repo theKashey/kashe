@@ -1,6 +1,9 @@
 import {Mappable, WeakStorage} from "./types";
 import {isWeakable} from "./utils";
 
+/**
+ * Splits argiments into weak-mappable and _plain_ ones
+ */
 export const breakdownArgs = (args: any[]) => {
     let weaks = [];
     let strongs = [];
@@ -11,7 +14,7 @@ export const breakdownArgs = (args: any[]) => {
             strongs.push(args[i])
         }
     }
-    return [...weaks, ...strongs];
+    return [weaks, strongs];
 }
 
 type Test = {
@@ -20,22 +23,25 @@ type Test = {
     weak?: Mappable<Test>;
 }
 
-type StorageKeys = 'strong' | 'weak';
-
 export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): WeakStorage => ({
     get(args) {
-        const slices = breakdownArgs(args);
-        if (!slices.length) {
+        const [weaks, strongs] = breakdownArgs(args);
+        if (!weaks.length) {
             throw new Error(`No weak-mappable (object, function, symbol) argument found.`);
         }
-        let readFrom = storage;
+        let readFrom: Mappable<Test> | undefined = storage;
         let test: Test | undefined = {weak: storage}
-        for (let i = 0; i < slices.length; ++i) {
-            const storageKey:StorageKeys = isWeakable(slices[i]) ? 'weak' : 'strong';
-            readFrom = test[storageKey];
-            test = readFrom.get(slices[i]);
+        for (let i = 0; i < weaks.length; ++i) {
+            readFrom = test.weak;
+            test = readFrom?.get(weaks[i]);
             if (!test) {
-                // get: no forward
+                return undefined
+            }
+        }
+        for (let i = 0; i < strongs.length; ++i) {
+            readFrom = test.strong;
+            test = readFrom?.get(strongs[i]);
+            if (!test) {
                 return undefined
             }
         }
@@ -48,21 +54,35 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
     },
 
     set(args, value) {
-        const slices = breakdownArgs(args);
-        let writeTo = storage;
-        let next: Test = {weak: storage};
-        for (let i = 0; i < slices.length; ++i) {
-            const [storageKey, factory]:[StorageKeys,() => Mappable] = isWeakable(slices[i]) ? ['weak', () => new WeakMap()] : ['strong', () => new Map()];
-            writeTo = next[storageKey];
+        const [weaks,strongs] = breakdownArgs(args);
+        let writeTo: Mappable<Test> | undefined = storage;
+        let next: Test | undefined = {weak: storage};
+
+        for (let i = 0; i < weaks.length; ++i) {
+            writeTo = next.weak;
             if (!writeTo) {
-                next[storageKey] = writeTo = factory();
+                next.weak = writeTo = new WeakMap();
             }
-            next = writeTo.get(slices[i]);
-            if (!next || !next[storageKey]) {
+            next = writeTo.get(weaks[i]);
+            if (!next || !next.weak) {
                 next = {
-                    [storageKey]: factory()
+                    weak: new WeakMap()
                 };
-                writeTo.set(slices[i], next);
+                writeTo.set(weaks[i], next);
+            }
+        }
+
+        for (let i = 0; i < strongs.length; ++i) {
+            writeTo = next.strong;
+            if (!writeTo) {
+                next.strong = writeTo = new Map();
+            }
+            next = writeTo.get(strongs[i]);
+            if (!next || !next.strong) {
+                next = {
+                    strong: new Map(),
+                };
+                writeTo.set(strongs[i], next);
             }
         }
 
