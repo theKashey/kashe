@@ -1,7 +1,7 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 
-import {CacheModel} from "./types";
-import {WeakStorage} from "../types";
+import {CacheModel} from "./types.ts";
+import {WeakStorage} from "../types.ts";
 
 export const asyncLocalStorageModel = ():CacheModel => {
     const asyncCacheStorage = new AsyncLocalStorage<WeakStorage>();

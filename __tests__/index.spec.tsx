@@ -1,4 +1,4 @@
-import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak";
+import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak.ts";
 
 
 describe('Weak', () => {

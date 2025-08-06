@@ -1,11 +1,11 @@
-import {kashe, fork} from "../src";
-import {configureCacheModel} from "../src/cache";
-import {asyncLocalStorageModel} from "../src/cache-models/async-local-storage-cache";
-import {syncCacheModel} from "../src/cache-models/sync-cache";
+import {asyncLocalStorageModel} from "../src/cache-models/async-local-storage-cache.ts";
+import {syncCacheModel} from "../src/cache-models/sync-cache.ts";
+import {configureCacheModel} from "../src/cache.ts";
+import {kashe, fork} from "../src/index.ts";
 
 describe('sync', () => {
     const STABLE_OBJECT = {};
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const test = kashe((_x) => ({}));
 
     const world1 = fork(test);
@@ -35,7 +35,7 @@ describe('slices', () => {
         const getReality = () => currentReality;
 
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const fn = kashe((_x) => currentHeap.index++, {resolver: getReality});
 
         const key = {};

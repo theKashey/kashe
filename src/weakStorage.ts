@@ -1,5 +1,5 @@
-import {Mappable, WeakStorage} from "./types";
-import {isWeakable} from "./utils";
+import {Mappable, WeakStorage} from "./types.ts";
+import {isWeakable} from "./utils.ts";
 
 /**
  * Splits argiments into weak-mappable and _plain_ ones

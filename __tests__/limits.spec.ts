@@ -1,9 +1,9 @@
-import {kashe} from "../src";
+import {kashe} from "../src/index.ts";
 
 describe('kashe serializer', () => {
     it('uses serializer to emulate TTL', () => {
         let count = 0;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const fn = kashe((_x,_index) => count++, {
             limit:2
         });

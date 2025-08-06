@@ -1,13 +1,13 @@
-import {kashe, withIsolatedKashe} from "../src";
+import {kashe, withIsolatedKashe} from "../src/index.ts";
 
 describe('kashe scope', () => {
     it('uses scope to control cache', () => {
         let count = 0;
         const fn = kashe(
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+             
             (_x) => count++,
         );
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const globalFn = kashe((_x) => count++, {scope:'GLOBAL'});
 
         const key = {};

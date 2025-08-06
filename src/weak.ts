@@ -1,8 +1,8 @@
 import functionDouble from "function-double";
 
-import {getCacheFor, withCacheScope} from "./cache";
-import {WeakStorage} from "./types";
-import {createWeakStorage} from "./weakStorage";
+import {getCacheFor, withCacheScope} from "./cache.ts";
+import {WeakStorage} from "./types.ts";
+import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
 
@@ -192,7 +192,7 @@ export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K
     return kashe((_, ...rest: T) => fn(...rest));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const localCacheCreator = kashe((_) => createWeakStorage());
 
 /**

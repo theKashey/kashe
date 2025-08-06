@@ -1,5 +1,5 @@
-import {Mappable, WeakStorage} from "./types";
-import {isWeakable} from "./utils";
+import {Mappable, WeakStorage} from "./types.ts";
+import {isWeakable} from "./utils.ts";
 
 export const createStrongStorage = (startIndex = 0, endIndex = Infinity, storage: Mappable = new WeakMap()): WeakStorage => ({
   get(args) {

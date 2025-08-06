@@ -1,5 +1,5 @@
-import {WeakStorage} from "../types";
-import {CacheModel} from "./types";
+import {WeakStorage} from "../types.ts";
+import {CacheModel} from "./types.ts";
 
 export const syncCacheModel = ():CacheModel => {
     const cacheStack: WeakStorage[] = [];

@@ -1,6 +1,6 @@
-import {syncCacheModel} from './cache-models/sync-cache'
-import {CacheModel} from "./cache-models/types";
-import {WeakStorage} from "./types";
+import {syncCacheModel} from './cache-models/sync-cache.ts'
+import {CacheModel} from "./cache-models/types.ts";
+import {WeakStorage} from "./types.ts";
 
 // default implementation
 let cacheModelCreator = syncCacheModel;
