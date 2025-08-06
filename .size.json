@@ -1,0 +1,8 @@
+[
+  {
+    "name": "dist/es2015/index.js",
+    "passed": false,
+    "size": 2035,
+    "sizeLimit": 1950
+  }
+]
