@@ -43,6 +43,7 @@ export default [
             "@typescript-eslint/ban-ts-ignore": 0,
             "@typescript-eslint/no-var-requires": 0,
             "@typescript-eslint/camelcase": 0,
+            "@typescript-eslint/consistent-type-imports": "error",
 
             "import/order": ["error", {
                 "newlines-between": "always-and-inside-groups",

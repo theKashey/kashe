@@ -1,4 +1,4 @@
-import {Mappable, WeakStorage} from "./types.ts";
+import type {Mappable, WeakStorage} from "./types.ts";
 import {isWeakable} from "./utils.ts";
 
 /**

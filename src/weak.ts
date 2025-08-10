@@ -1,7 +1,7 @@
 import functionDouble from "function-double";
 
 import {getCacheFor, withCacheScope} from "./cache.ts";
-import {WeakStorage} from "./types.ts";
+import type {WeakStorage} from "./types.ts";
 import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
@@ -40,7 +40,7 @@ export type WeakOptions<Return, Serialized> = {
      *
      * @default false
      */
-    UNSAFE_allowNoWeakKeys?:boolean;
+    UNSAFE_allowNoWeakKeys?: boolean;
     /**
      * used to serialize and deserialize values stored in the cache.
      * can be used to store extra information or perform any other transformation.
@@ -146,9 +146,9 @@ export const weakKashe = (indexes: number[]) => {
 }
 
 function weakKasheFactory<T extends any[], Return>
-(scope:any, func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
+(scope: any, func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
     const cache = createWeakStorage();
-    const key ={};
+    const key = {};
 
     return function kasheFactory(...args: any[]) {
         const localCache = getCacheFor(scope, key, createWeakStorage,) || cache;
@@ -192,7 +192,7 @@ export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K
     return kashe((_, ...rest: T) => fn(...rest));
 }
 
- 
+
 const localCacheCreator = kashe((_) => createWeakStorage());
 
 /**
@@ -228,7 +228,7 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K, scope?: any):
             const cache = localCacheCreator(cacheVariation);
 
             return (...rest: T) =>
-                withCacheScope(scope,cache, () => fn(...rest))
+                withCacheScope(scope, cache, () => fn(...rest))
         }
     );
 
@@ -245,7 +245,10 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K, scope?: any):
  * @see {@link inboxed} for argument based cache separation
  * @see https://github.com/theKashey/kashe#fork
  */
-export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { singleton?: boolean, scope:any }): (...args: T) => K {
+export function fork<T extends any[], K>(fn: (...args: T) => K, options?: {
+    singleton?: boolean,
+    scope: any
+}): (...args: T) => K {
     const cache = localCacheCreator({});
     const genLocalCache = () => localCacheCreator({});
 
@@ -260,9 +263,9 @@ export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { sing
  * Starts a new cache scope
  * @see {@link inboxed} and {@link fork} for other ways to create a new cache scope
  */
-export function withIsolatedKashe<K>(fn: () => K, scope?:any): K {
-    const cache = localCacheCreator({});
-    const genLocalCache = () => localCacheCreator({});
+export function withIsolatedKashe<K>(fn: () => K, {scope, pointer = {}}: { scope?: any, pointer?: any } = {}): K {
+    const cache = localCacheCreator(pointer);
+    const genLocalCache = () => localCacheCreator(pointer);
     const cacheOverride = getCacheFor(scope, cache, genLocalCache) || cache;
 
     return withCacheScope(scope, cacheOverride, fn)

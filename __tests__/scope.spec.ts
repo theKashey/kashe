@@ -23,7 +23,29 @@ describe('kashe scope', () => {
         withIsolatedKashe(() => {
             expect(fn(key)).toBe(0);
             expect(globalFn(key)).toBe(3);
-        }, 'GLOBAL');
+        }, {scope:'GLOBAL'});
+
+        withIsolatedKashe(() => {
+            expect(fn(key)).toBe(0);
+            // restart
+            expect(globalFn(key)).toBe(4);
+        }, {scope:'GLOBAL'});
+
+        const pointer= {};
+
+        withIsolatedKashe(() => {
+            expect(fn(key)).toBe(0);
+            // restart
+            expect(globalFn(key)).toBe(5);
+        }, {scope:'GLOBAL', pointer});
+
+        withIsolatedKashe(() => {
+            expect(fn(key)).toBe(0);
+            // reuse
+            expect(globalFn(key)).toBe(5);
+        }, {scope:'GLOBAL', pointer})
+
+
 
         expect(fn(key)).toBe(0);
         expect(globalFn(key)).toBe(1);
