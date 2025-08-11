@@ -253,6 +253,12 @@ test('should have isolated cache', () => {
 ⚠️ all "cache scope" powered function are working "properly" only if controlled directly by user (like custom `resolver`) or if wrapped locations are `sync`.
 Correct "thread safe" behavior is only possible with `asyncLocalStorageModel`, see below.
 
+> Cheatsheet:
+> - `kashe` and `weakKashe` are the main memoization functions. The difference is that `weakKashe` provides a way to _ease_ argument comparison.
+> - `boxed` and `inboxed` prepends given function with an extra argument, which is used as a cache key. The difference is how "deep" change goes.
+> - `fork` and `withIsolatedKashe` are quite alike, but one is more return a function and another executes.
+
+
 ### `createWeakStorage()`
 It's worth to mention that all commands above are just a think layer around `createWeakStorage`. You can use it to do your own magic tricks.
 
@@ -402,9 +408,8 @@ const OtherComponent = () => {
   const memoizedData2 = memoizedFunction(localKasheKey, firstArgument, secondArgument);
 }
 ```
-So - almost the same as `React.useMemo`, but you might use it in Class Components and `mapStateToProps`.
+So - almost the same as `React.useMemo`, well closer to `React.cache`, but you might use it in Class Components, `mapStateToProps`, server, client, anywhere.
 
-### more like useMemo 
 ### more like useMemo 
 💡 `weakKashe` was created to allow you to inline function implementation, but this operation might be "unsafe"
 ```tsx
