@@ -218,6 +218,41 @@ const independent = fork(original); // Separate cache, same function
 original(data) !== independent(data); // Different caches
 ```
 
+### `withIsolatedKashe(func, options?)`
+
+Starts a new cache scope for all `kashe` calls made within the provided function. Perfect for per-request isolation or creating completely isolated cache contexts.
+
+```ts
+import { withIsolatedKashe } from 'kashe';
+
+// Per-request isolation in a server
+app.get('/api/data', (req, res) => {
+  withIsolatedKashe(() => {
+    // All kashe calls inside get their own isolated cache
+    const result = processData(req.params); // Cached per request
+    res.json(result);
+  });
+});
+
+// Test isolation
+test('should have isolated cache', () => {
+  withIsolatedKashe(() => {
+    // Cache is completely isolated from other tests
+    const result = expensiveFunction(testData);
+    expect(result).toBe(expectedValue);
+  });
+});
+```
+
+#### Options
+- **`scope?: any`** - Custom cache scope for advanced scenarios
+- **`pointer?: any`** - Custom pointer object for cache identification (default: `{}`"new object")
+
+> 💡`pointer` acts the same way as `resolver` for kashe, or first argument for `boxed` and `inboxed` - the same value will point to the same cache. While this is a tool of separation, it can be used as tool of union
+
+⚠️ all "cache scope" powered function are working "properly" only if controlled directly by user (like custom `resolver`) or if wrapped locations are `sync`.
+Correct "thread safe" behavior is only possible with `asyncLocalStorageModel`, see below.
+
 ### `createWeakStorage()`
 It's worth to mention that all commands above are just a think layer around `createWeakStorage`. You can use it to do your own magic tricks.
 
@@ -262,10 +297,20 @@ app.get('/api/user', (req, res) => {
 ```diff
 - const expensiveFunction = React.cache(performOperation);
 
-+ // use react cache to give us a cache key
++ // Option 1: Use react cache to give us a cache key
 + const reactResolver = React.cache(() => ({}));
-+ // use it "slice" data per react render
-+ const expensiveFunction = kashe(performOperation, {resover: reactResolver});
++ // use it to "slice" data per react render
++ const expensiveFunction = kashe(performOperation, {resolver: reactResolver});
+
++ // Option 2: Use withIsolatedKashe for per-request isolation
++ const expensiveFunction = kashe(performOperation, {UNSAFE_allowNoWeakKeys: true});
++ // Then wrap your request handler:
++ app.get('/api/data', (req, res) => {
++   withIsolatedKashe(() => {
++     const result = expensiveFunction(req.params);
++     res.json(result);
++   });
++ });
 ```
 While it might look a little bit more verbose, it gives you a full control over cache isolation and memory usage.
 And is not limited to ServerComponents (or React at all).
@@ -359,6 +404,7 @@ const OtherComponent = () => {
 ```
 So - almost the same as `React.useMemo`, but you might use it in Class Components and `mapStateToProps`.
 
+### more like useMemo 
 ### more like useMemo 
 💡 `weakKashe` was created to allow you to inline function implementation, but this operation might be "unsafe"
 ```tsx
