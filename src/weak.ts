@@ -1,6 +1,6 @@
-import functionDouble from "function-double";
-
 import {getCacheFor, withCacheScope} from "./cache.ts";
+// removed "in" until it's ESM compatible
+import {functionDouble} from "./function-double.ts";
 import type {WeakStorage} from "./types.ts";
 import {createWeakStorage} from "./weakStorage.ts";
 
@@ -281,7 +281,7 @@ export function inboxed<T extends any[], K>(fn: (...args: T) => K, scope?: any):
  * Useful for isolation one kashe call from another
  * @param fn - function to memoize
  * @see {@link inboxed} for argument based cache separation
- * @see {@link withIsolatedKashe} to just "fork" cache scope
+ * @see {@link withKasheIsolation} to just "fork" cache scope
  * @see https://github.com/theKashey/kashe#fork
  */
 export function fork<T extends any[], K>(
@@ -325,13 +325,13 @@ export function fork<T extends any[], K>(
  *
  * @see {@link inboxed} for argument-based cache separation
  * @see {@link fork} for creating isolated function variants
- * @see https://github.com/theKashey/kashe#withisolatedkashe
+ * @see https://github.com/theKashey/kashe#withKasheIsolation
  *
  * @example
  * ```ts
  * // Server-side per-request isolation
  * app.get('/api/data', (req, res) => {
- *   withIsolatedKashe(() => {
+ *   withKasheIsolation(() => {
  *     // All kashe calls inside get their own cache per request
  *     const result = processExpensiveData(req.params);
  *     res.json(result);
@@ -340,7 +340,7 @@ export function fork<T extends any[], K>(
  *
  * // Test isolation - each test gets clean cache
  * test('should calculate correctly', () => {
- *   withIsolatedKashe(() => {
+ *   withKasheIsolation(() => {
  *     const result = expensiveCalculation(testData);
  *     expect(result).toBe(expectedValue);
  *   });
@@ -353,13 +353,13 @@ export function fork<T extends any[], K>(
  * });
  *
  * // Use in server component
- * withIsolatedKashe(() => {
+ * withKasheIsolation(() => {
  *   const data = ReactCache(fetchData)(userId);
  *   return <UserProfile data={data} />;
  * });
  * ```
  */
-export function withIsolatedKashe<K>(fn: () => K, {scope, pointer = {}}: {
+export function withKasheIsolation<K>(fn: () => K, {scope, pointer = {}}: {
     scope?: any,
     /**
      * pointer to the "cache". Similar objects points to similar caches.

@@ -1,4 +1,4 @@
-import {kashe, withIsolatedKashe} from "../src/index.ts";
+import {kashe, withKasheIsolation} from "../src/index.ts";
 
 describe('kashe scope', () => {
     it('uses scope to control cache', () => {
@@ -15,17 +15,17 @@ describe('kashe scope', () => {
         expect(fn(key)).toBe(0);
         expect(globalFn(key)).toBe(1);
 
-        withIsolatedKashe(() => {
+        withKasheIsolation(() => {
             expect(fn(key)).toBe(2);
             expect(globalFn(key)).toBe(1);
         });
 
-        withIsolatedKashe(() => {
+        withKasheIsolation(() => {
             expect(fn(key)).toBe(0);
             expect(globalFn(key)).toBe(3);
         }, {scope:'GLOBAL'});
 
-        withIsolatedKashe(() => {
+        withKasheIsolation(() => {
             expect(fn(key)).toBe(0);
             // restart
             expect(globalFn(key)).toBe(4);
@@ -33,13 +33,13 @@ describe('kashe scope', () => {
 
         const pointer= {};
 
-        withIsolatedKashe(() => {
+        withKasheIsolation(() => {
             expect(fn(key)).toBe(0);
             // restart
             expect(globalFn(key)).toBe(5);
         }, {scope:'GLOBAL', pointer});
 
-        withIsolatedKashe(() => {
+        withKasheIsolation(() => {
             expect(fn(key)).toBe(0);
             // reuse
             expect(globalFn(key)).toBe(5);

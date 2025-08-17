@@ -236,7 +236,7 @@ app.get('/api/data', (req, res) => {
 
 // Test isolation
 test('should have isolated cache', () => {
-  withIsolatedKashe(() => {
+  withKasheIsolation(() => {
     // Cache is completely isolated from other tests
     const result = expensiveFunction(testData);
     expect(result).toBe(expectedValue);
@@ -256,7 +256,7 @@ Correct "thread safe" behavior is only possible with `asyncLocalStorageModel`, s
 > Cheatsheet:
 > - `kashe` and `weakKashe` are the main memoization functions. The difference is that `weakKashe` provides a way to _ease_ argument comparison.
 > - `boxed` and `inboxed` prepends given function with an extra argument, which is used as a cache key. The difference is how "deep" change goes.
-> - `fork` and `withIsolatedKashe` are quite alike, but one is more return a function and another executes.
+> - `fork` and `withKasheIsolation` are quite alike, but one is more return a function and another executes.
 
 
 ### `createWeakStorage()`
@@ -308,11 +308,11 @@ app.get('/api/user', (req, res) => {
 + // use it to "slice" data per react render
 + const expensiveFunction = kashe(performOperation, {resolver: reactResolver});
 
-+ // Option 2: Use withIsolatedKashe for per-request isolation
++ // Option 2: Use withKasheIsolation for per-request isolation
 + const expensiveFunction = kashe(performOperation, {UNSAFE_allowNoWeakKeys: true});
 + // Then wrap your request handler:
 + app.get('/api/data', (req, res) => {
-+   withIsolatedKashe(() => {
++   withKasheIsolation(() => {
 +     const result = expensiveFunction(req.params);
 +     res.json(result);
 +   });
@@ -469,7 +469,7 @@ selectItemsByCategory(state, 'Electronics') // Still cached!
 
 ## Cache Model Configuration
 By default, `kashe` uses a synchronous cache scoping model. 
-Scoping only occur when you use `fork` or `inboxed` helpers, or wrap location with `withIsolatedKashe` and not in any other cases.
+Scoping only occur when you use `fork` or `inboxed` helpers, or wrap location with `withKasheIsolation` and not in any other cases.
 However any invocation of `kashe` will refer to the current cache model and obey it.
 
 For advanced scenarios like server-side rendering with request isolation, you can configure a different cache model.
@@ -504,7 +504,7 @@ const processData = kashe((data) => expensiveOperation(data));
 // In your server
 app.use((req, res, next) => {
   // Each request automatically gets isolated cache
-  withIsolatedKashe(() => {
+  withKasheIsolation(() => {
       processData(someData); // Cached per request
   });
   next();
@@ -524,7 +524,7 @@ Warning: Sync cache is not expected to be able to properly handle async operatio
 ### Multiple Cache Models
 Sometimes you even might want to use custom cache modeles or reuse implementation of existing ones to have multiple caching realities at the same time.
 
-💡by default there is one active cache model, and if you called `withIsolatedKashe` - two different requests will be NEVER able to share cache.
+💡by default there is one active cache model, and if you called `withKasheIsolation` - two different requests will be NEVER able to share cache.
 However you can provide `cacheModel` to the `kashe` function let them coexists.
 
 ### Custom Cache Models

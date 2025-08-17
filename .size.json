@@ -2,7 +2,7 @@
   {
     "name": "dist/es2015/index.js",
     "passed": true,
-    "size": 2119,
+    "size": 1800,
     "sizeLimit": 2200
   }
 ]

@@ -1,7 +1,3 @@
-/**
- * Represents a cached result stored in weak storage.
- * Contains the cached value and potentially other metadata.
- */
 export interface WeakResult {
   value: any;
   // index: number;
@@ -78,26 +74,8 @@ export interface WeakStorage {
   set(args: any[], value: any, options?: WeakStorageOptions): any;
 }
 
-/**
- * Generic interface for Map-like objects that can store key-value pairs.
- * Used internally by the weak storage implementation.
- * 
- * @template T - The type of values stored in the mappable object
- */
 export interface Mappable<T = any> {
-  /**
-   * Retrieves a value by key.
-   * 
-   * @param key - The key to look up
-   * @returns The stored value or undefined if not found
-   */
   get(key: any): T | undefined;
 
-  /**
-   * Stores a key-value pair.
-   * 
-   * @param key - The key to store the value under
-   * @param value - The value to store
-   */
-  set(key: any, value: T): void;
+  set(set: any, value: T): void;
 }

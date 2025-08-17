@@ -1,5 +1,5 @@
 import {configureCacheModel} from './cache.ts';
-import {kashe, weakKashe, boxed, inboxed, fork, withIsolatedKashe} from "./weak.ts";
+import {kashe, weakKashe, boxed, inboxed, fork, withKasheIsolation} from "./weak.ts";
 import {createWeakStorage} from "./weakStorage.ts";
 
 export {
@@ -8,7 +8,7 @@ export {
   boxed,
   inboxed,
   fork,
-  withIsolatedKashe,
+  withKasheIsolation,
   configureCacheModel,
   createWeakStorage
 };
