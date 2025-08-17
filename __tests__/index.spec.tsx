@@ -1,11 +1,13 @@
-import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak";
+import {kashe, weakKashe, boxed, inboxed, fork} from "../src/weak.ts";
 
 
 describe('Weak', () => {
     it('weak memoize', () => {
         let recomputations = 0;
+
         const produce = (state: any, a: any, b: any) => {
             recomputations++;
+
             return {a: a + state.a, b: b + state.b}
         };
 
@@ -31,15 +33,28 @@ describe('Weak', () => {
         const weakResult1_2 = weakProduce(state1, 2, 2);
         expect(recomputations).toBe(4);
         expect(weakResult1_2).toEqual({a: 3, b: 4});
+
         const weakResult2 = weakProduce(state2, 1, 2);
 
         expect(weakResult2).toBe(weakProduce(state2, 1, 2));
         expect(weakResult1_2).toBe(weakProduce(state1, 2, 2));
     });
 
+    it('strong memoize', () => {
+        const box = {};
+        const fn = (x: any, y: any) => `${x}-${y}`;
+        const weakKashe = kashe(fn);
+        const strongKashe = kashe(fn, {UNSAFE_allowNoWeakKeys: true, resolver: () => box});
+
+        expect(() => weakKashe(1, 2)).toThrow(new Error('No weak-mappable (object, function, symbol) argument found.'));
+        expect(() => strongKashe(1, 2)).not.toThrow();
+
+        expect(strongKashe(1, 2)).toBe('1-2');
+    });
+
     it('weak kashe', () => {
         const kasheMap = kashe((data: any[], iterator: (x: number) => number) => data.map(i => iterator(i)));
-        const weakMap = weakKashe((data: any[], iterator: (x: number) => number) => data.map(i => iterator(i)));
+        const weakMap = weakKashe([1])((data: any[], iterator: (x: number) => number) => data.map(i => iterator(i)));
 
         const map = (x: number) => x + 1;
         const data = [0, 1];
@@ -58,10 +73,12 @@ describe('Weak', () => {
     });
 
     it('this memoization', () => {
-        const test = kashe(function (x: number) { return {x:x+this.x}});
-        const this1 = {x:1};
-        const this2 = {x:2};
-        const this3 = {};
+        const test = kashe(function (this: { x: number }, x: number) {
+            return {x: x + this.x}
+        });
+        const this1 = {x: 1};
+        const this2 = {x: 2};
+        // const this3 = {};
         const test1_1 = test.call(this1, 1);
         const test2_1 = test.call(this2, 1);
         const test1_2 = test.call(this1, 1);
@@ -74,9 +91,10 @@ describe('Weak', () => {
 
     it('cascade memoization', () => {
         const test = kashe((x: any, y: any, z: any) => ({x, y, z}));
-        const arg1 = {arg1:1};
-        const arg3_1 = {arg3_1:1};
-        const arg3_2 = {arg3_2:1};
+        const arg1 = {arg1: 1};
+        const arg3_1 = {arg3_1: 1};
+        const arg3_2 = {arg3_2: 1};
+
         {
             const result1 = test(arg1, 1, arg3_1);
             const result2 = test(arg1, 2, arg3_1);
@@ -84,6 +102,7 @@ describe('Weak', () => {
             expect(result1).toBe(test(arg1, 1, arg3_1));
             expect(result2).toBe(test(arg1, 2, arg3_1));
         }
+
         {
             const result1 = test(arg1, arg3_1, 1);
             const result2 = test(arg1, arg3_2, 2);
@@ -91,6 +110,7 @@ describe('Weak', () => {
             expect(result1).toBe(test(arg1, arg3_1, 1));
             expect(result2).toBe(test(arg1, arg3_2, 2));
         }
+
         {
             const result1 = test(arg1, 1, arg3_1);
             const result2 = test(arg1, 2, arg3_2);
@@ -156,18 +176,24 @@ describe('nested memoization', () => {
 
         const obj = {};
 
+        // @ts-ignore
         const v1 = kfn1(obj);
+        // @ts-ignore
         const v2 = kfn2(obj);
 
+        // @ts-ignore
         expect(v1).toBe(kfn1(obj));
+        // @ts-ignore
         expect(v2).toBe(kfn2(obj));
         expect(v1).not.toBe(v2);
 
+        // @ts-ignore
         const ifn = inboxed((st) => [kfn1(st), kfn2(st)]);
 
         expect(ifn(obj, obj)).toEqual([2, 3]);
         expect(ifn(obj, obj)).toEqual([2, 3]);
     });
+
     const forkedFn1 = fork(fn1);
     const forkedFn2 = fork(fn1);
 

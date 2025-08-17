@@ -2,41 +2,57 @@
   "name": "kashe",
   "version": "2.0.0",
   "description": "Stateless weak memoization replacement for reselect and memoize-one",
-  "main": "dist/es5/index.js",
+  "main": "./dist/es5/index.js",
+  "module": "./dist/es2015/index.js",
+  "types": "./dist/es5/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/es5/index.d.ts",
+      "import": "./dist/es2015/index.js",
+      "require": "./dist/es5/index.js",
+      "default": "./dist/es2015/index.js"
+    },
+    "./async-local-storage-cache": {
+      "types": "./dist/es5/cache-models/async-local-storage-cache.d.ts",
+      "import": "./dist/es2015/cache-models/async-local-storage-cache.js",
+      "require": "./dist/es5/cache-models/async-local-storage-cache.js",
+      "default": "./dist/es2015/cache-models/async-local-storage-cache.js"
+    }
+  },
   "sideEffects": [
-    "**/cache.js"
+    "./dist/es5/cache.js",
+    "./dist/es2015/cache.js"
   ],
   "scripts": {
-    "test": "ts-react-toolbox test",
-    "bootstrap": "ts-react-toolbox init",
-    "dev": "ts-react-toolbox dev",
-    "test:ci": "ts-react-toolbox test --runInBand --coverage",
-    "build": "ts-react-toolbox build",
-    "release": "ts-react-toolbox release",
-    "lint": "ts-react-toolbox lint",
-    "static": "ts-react-toolbox publish",
-    "prepublish": "yarn build",
-    "format": "ts-react-toolbox format",
-    "analyze": "ts-react-toolbox analyze"
+    "dev": "lib-builder dev",
+    "test": "jest",
+    "test:ci": "jest --runInBand --coverage",
+    "build": "lib-builder build && yarn size:report",
+    "release": "yarn build && yarn test",
+    "size": "size-limit",
+    "size:report": "size-limit --json > .size.json",
+    "lint": "lib-builder lint",
+    "format": "lib-builder format",
+    "update": "lib-builder update",
+    "prepublish": "yarn build && yarn changelog",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "changelog:rewrite": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
   "repository": "https://github.com/theKashey/kashe/",
   "author": "theKashey <thekashey@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "size-limit": "^0.21.1",
-    "ts-jest": "^24.0.0",
-    "ts-react-toolbox": "^0.2.20",
-    "typescript": "^3.3.3333"
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@theuiteam/lib-builder": "^1.1.0",
+    "size-limit": "^11.2.0"
   },
   "engines": {
     "node": ">=8.5.0"
   },
-  "jsnext:main": "dist/es2015/index.js",
-  "module": "dist/es2015/index.js",
-  "types": "dist/es5/index.d.ts",
   "files": [
     "dist",
-    "reselect"
+    "LICENSE",
+    "README.md"
   ],
   "keywords": [
     "memoize",
@@ -46,8 +62,7 @@
     "weak"
   ],
   "dependencies": {
-    "function-double": "^1.0.4",
-    "reselect": "^4.0.0",
-    "tslib": "^2.6.2"
-  }
+    "tslib": "^2.8.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

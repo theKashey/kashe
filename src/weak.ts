@@ -1,102 +1,217 @@
-import functionDouble from "function-double";
-
-import {createWeakStorage} from "./weakStorage";
-import {WeakStorage} from "./types";
-import {getCacheFor, getCacheOverride, withCacheScope} from "./cache";
-import {addKashePrefix} from "./helpers";
+import {getCacheFor, withCacheScope} from "./cache.ts";
+// removed "in" until it's ESM compatible
+import {functionDouble} from "./function-double.ts";
+import type {WeakStorage} from "./types.ts";
+import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
 
+export type KasheSerializer<T = unknown, K = T> = {
+    /**
+     * used to transform input into a value stored in the cache
+     * @default -> T => K
+     */
+    writeTo?(input: T): K;
+    /**
+     * used to transform valid from the cache into result, or reject to undefined
+     * @param input
+     */
+    readFrom(input: K): T | undefined
+}
+export type WeakOptions<Return, Serialized> = {
+    /**
+     * specifies a cache resolved. Can be used to create "independent slices" of the cache.
+     * If not specified, a single slice is used.
+     */
+    resolver?: () => object | symbol;
+    /**
+     * limits the number of non-primitive arguments stored in the cache.
+     * there are no limits for weak references, and no way to even count them
+     * however it is possible to limit the number of "primitive" arguments stored in the cache.
+     * @default no limit
+     */
+    limit?: number;
+    /**
+     * ⚠️ unsafe option, which allows to use kashe without any weak-mappable arguments.
+     * This is not recommended, as it can lead to memory leaks.
+     * - Use only with `resolver` or other scoping mechanisms.
+     * - Behavior is similar to `React.cache` or `Reselect v5`.
+     * - Setting `limit` option is strongly advised when enabled.
+     *
+     * @default false
+     */
+    UNSAFE_allowNoWeakKeys?: boolean;
+    /**
+     * used to serialize and deserialize values stored in the cache.
+     * can be used to store extra information or perform any other transformation.
+     * A possible use case - limit TTL of the cached value by storing a timestamp and rejecting "old" values
+     */
+    serializer?: KasheSerializer<Return, Serialized>;
+    /**
+     * configures a scope for the cache.
+     * caches with different scopes can existing in parallel without any interference.
+     */
+    scope?: any;
+}
+
+const DEFAULT_SLICE = Symbol('kashe-default-slice');
+const getDefaultSlice = () => DEFAULT_SLICE;
 
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
-  /**
-   * memoizes a function
-   */
-  return function kashe<Arg extends object, T extends any[], Return>
-  (
-    func: (x: Arg, ...rest: T) => Return,
-    cache: WeakStorage = cacheCreator()
-  ): (x: Arg, ...rest: T) => Return {
-    const _this_ = {func};
-    return functionDouble(function (this:any, ...args: any[]) {
-      const localCache = getCacheFor(_this_, cacheCreator) || cache;
-      const usedArgs = mapper ? args.map(mapper) : args;
-      const thisArgs = [this,...usedArgs];
-      const test = localCache.get(thisArgs);
-      if (test) {
-        return test.value;
-      }
+    /**
+     * memoizes a function
+     */
+    return function kashe<Args extends any[], Return, Serialized = Return>
+    (
+        /**
+         * function to memoize
+         */
+        func: (...args: Args) => Return,
+        /**
+         * extra options
+         */
+        options: WeakOptions<Return, Serialized> = {},
+    ): (...args: Args) => Return {
+        const {resolver = getDefaultSlice, limit, UNSAFE_allowNoWeakKeys, serializer} = options;
+        const defaultCache = cacheCreator();
+        const _this_ = {func};
 
-      return localCache.set(
-          thisArgs,
-         // @ts-ignore
-         func.apply(this,args)
-      );
-    }, func, {name: addKashePrefix as any});
-  }
+        const readFrom = serializer?.readFrom || ((x) => x);
+        const writeTo = serializer?.writeTo || ((x) => x);
+
+        return functionDouble(function (this: any, ...args: any[]) {
+            const localCache = getCacheFor(options.scope, _this_, cacheCreator) || defaultCache;
+            const usedArgs = mapper ? args.map(mapper) : args;
+            const thisArgs = [this, resolver(), ...usedArgs];
+            const test = localCache.get(thisArgs);
+
+            if (test) {
+                const resultValue = readFrom(test.value);
+
+                if (resultValue !== undefined || test.value === undefined) {
+                    return resultValue;
+                }
+            }
+
+            // @ts-expect-error TS2345: Argument of type any[] is not assignable to parameter of type [x: Arg, ...rest: T]
+            const result = func.apply(this, args);
+
+            localCache.set(
+                thisArgs,
+                writeTo(result),
+                {limit, UNSAFE_allowNoWeakKeys}
+            );
+
+            return result;
+        }, func, {name: `kashe-${func.name || 'anonymous'}`});
+    }
 }
 
 /**
- * weak memoization helper.
- * Uses non-primitive arguments to store result. Thus NOT suitable for functions with "simple" argument. See {@link boxed} for such cases.
+ * Weak memoization helper that stores cached results inside the arguments themselves using WeakMap.
  *
- * `kashe`'s API is equal to any other single-line memoization library except the requirement for
- * some arguments to be an object (or a function).
- **
+ * Unlike traditional memoization, kashe requires at least one argument to be a non-primitive value
+ * (object, function, array, symbol) to store the cache, preventing memory leaks through automatic
+ * garbage collection when arguments are no longer referenced.
+ *
+ * Perfect for React selectors, computed properties, and any function where you want memory-safe caching
+ * without global state pollution.
+ *
+ * @param func - The function to memoize
+ * @param options - Configuration options for caching behavior
+ * @returns A memoized version of the function with the same signature
+ *
  * @see https://github.com/theKashey/kashe#kashe
+ * @see {@link boxed} for functions with only primitive arguments
+ * @see {@link weakKashe} for relaxed argument comparison
+ *
  * @example
  * ```ts
- * // create a selector, which returns a new array using `array.filter` every time
- * const badSelector = (array) => array.filter(somehow)
- * // make it return the same object for the same array called.
- * const goodSelector = kashe(badSelector);
+ * // Basic usage - requires at least one object/array/function argument
+ * const selector = kashe((state, filter) => state.items.filter(filter));
+ *
+ * // With resolver for per-request isolation
+ * const perRequestCache = kashe(
+ *   (data) => processData(data),
+ *   { resolver: () => currentRequest }
+ * );
+ *
+ * // React.cache replacement with UNSAFE_allowNoWeakKeys
+ * const ReactCache = (fn) => kashe(fn, {
+ *   resolver: () => renderContext,
+ *   UNSAFE_allowNoWeakKeys: true,
+ *   limit: 100 // Recommended for safety
+ * });
+ *
+ * // With TTL using serializer
+ * const withTTL = kashe(fn, {
+ *   serializer: {
+ *     writeTo: (value) => ({ value, expires: Date.now() + 60000 }),
+ *     readFrom: (entry) => Date.now() < entry.expires ? entry.value : undefined
+ *   }
+ * });
  * ```
  */
 export const kashe = weakMemoizeCreator(createWeakStorage);
 
 /**
- * a special version of {@link kashe} which does not strictly checks arg1+.
- * Requires first argument to be a non-primitive value.
- * Could be used to bypass equality check, however use with ⚠️caution and for a good reason🧑‍🏭
+ * A special version of {@link kashe} which uses string comparison for specified argument positions.
+ * Requires at least one argument to be a non-primitive value for weak mapping.
+ *
+ * This allows bypassing strict equality checks for selected arguments by comparing their string representations.
+ * Useful when you need to cache based on function content or other values that change references but not semantics.
+ *
+ * ⚠️ Use with caution - string comparison can lead to unexpected cache hits if different values stringify to the same result.
+ *
+ * @param indexes - Array of argument positions (0-based) to compare using string representation instead of strict equality
+ * @returns A function that creates memoized versions with relaxed argument comparison
  *
  * @see https://github.com/theKashey/kashe#weakkashe
  * @example
  * ```ts
- * const weakMap = weakKashe((data, iterator, ...deps) => data.map(iterator));
- * const derived = weakMap(data, line => ({...line, somethingElse}), localVariable1);
- * // 👆 second argument is changing every time, but as long as it's __String representation__ is the same - result is unchanged.
+ * // Compare second argument (index 1) by string representation
+ * const weakMap = weakKashe([1])((data, iterator, ...deps) => data.map(iterator));
+ *
+ * // These will be treated as the same despite different function references:
+ * const result1 = weakMap(data, x => x * 2, localVar);  // Cache miss - first call
+ * const result2 = weakMap(data, x => x * 2, localVar);  // Cache hit - same string representation
+ * const result3 = weakMap(data, y => y * 2, localVar);  // Cache miss - different var name so different string
  * ```
  */
-export const weakKashe = weakMemoizeCreator(createWeakStorage, (arg, i) => i > 0 ? String(arg) : arg);
-
-function weakKasheFactory<T extends any[], Return>
-(func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
-  const cache = createWeakStorage();
-
-  return function kasheFactory(...args: any[]) {
-    const localCache = getCacheOverride() || cache;
-    const cacheArg = [args[indexId]];
-    const test = localCache.get(cacheArg);
-    if (test) {
-      return test.value;
+export const weakKashe = (indexes: number[]) => {
+    if (!Array.isArray(indexes)) {
+        throw new Error('weakKashe requires an array of indexes to use as a weak keys');
     }
 
-    return localCache.set(
-      cacheArg,
-      // @ts-ignore
-      func(...args)
-    );
-  }
+    return weakMemoizeCreator(createWeakStorage, (arg, i) => indexes.includes(i) ? String(arg) : arg);
 }
 
-export function swap<T, K, R>(fn: (t: T, k: K) => R): (k: K, T: T) => R {
-  return (k: K, t: T) => fn(t, k)
+function weakKasheFactory<T extends any[], Return>
+(scope: any, func: (...rest: T) => Return, indexId: number = 0): (...rest: T) => Return {
+    const cache = createWeakStorage();
+    const key = {};
+
+    return function kasheFactory(...args: any[]) {
+        const localCache = getCacheFor(scope, key, createWeakStorage,) || cache;
+        const cacheArg = [args[indexId]];
+        const test = localCache.get(cacheArg);
+
+        if (test) {
+            return test.value;
+        }
+
+        return localCache.set(
+            cacheArg,
+            // @ts-ignore
+            func(...args)
+        );
+    }
 }
 
 type BoxedCall<T extends any[], K> = (state: object, ...rest: T) => K;
 
 /**
- * Prepends a single function with an additional argument, which would be used as a "box" key layer.
+ * Prepends a function with an additional argument, which would be used as a "box" key later.
  * Literally "puts function in a box"
  *
  * @param {Function} fn - function to "box"
@@ -108,14 +223,16 @@ type BoxedCall<T extends any[], K> = (state: object, ...rest: T) => K;
  * const addTwo = (a,b) => a+b; // could not be "kashe" memoized
  * const bAddTwo = boxed(addTwo); // "box" it
  * const cacheKey = {}; // any object
- * // 👇 not function takes 3 arguments
+ * // 👇 now function takes 3 arguments
  * bAddTwo(cacheKey, 1, 2) === bAddTwo(cacheKey, 1, 2) === 3
- * // result is "stored in a first argument" - using another key equivalent to cache clear.
+ * // result is "stored" in a first argument, using another key causes a new call
  * bAddTwo(otherCacheKey, 1, 2) // -> a new call
  */
 export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
-  return kashe((_, ...rest: T) => fn(...rest));
+    // we just placing an extra argument at the beginning and instantly removing it
+    return kashe((_, ...rest: T) => fn(...rest));
 }
+
 
 const localCacheCreator = kashe((_) => createWeakStorage());
 
@@ -127,45 +244,131 @@ const localCacheCreator = kashe((_) => createWeakStorage());
  *
  * @param {Function} fn function to "box"
  *
- * @see {@link boxed} for non-nested caches.
+ * @see {@link boxed} for non-nested and more explicit caches.
+ * @see {@link fork} for "splitting" functions without prepending with an extra arg.
  * @see https://github.com/theKashey/kashe#inboxed
  * @example
- * const kashedSelector = kashe((state) => ({state, counter: counter++})); // returns unique object every all
+ * ```ts
+ * const kashedSelector = kashe((state) => ({state, counter: counter++})); // returns unique object every call
  * const inboxedSelector = inboxed(kashedSelector);
  *
- * ✅ kashedSelector(state) === kashedSelector(state)
+ * // ✅using the same key returns the same object
+ * kashedSelector(state) === kashedSelector(state)
+ *
  * const cacheKey = {}; // any object
- * 👉 inboxedSelector(cacheKey, state) === inboxedSelector(cacheKey, state)
- * ✅ inboxedSelector({}, state) !== inboxedSelector({}, state)
+ * // ✅using the same key(s) returns the same object
+ * inboxedSelector(cacheKey, state) === inboxedSelector(cacheKey, state)
+ * // ✅ using different keys returns different objects
+ * inboxedSelector({}, state) !== inboxedSelector({}, state)
+ * ```
  */
-export function inboxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
-  const factory = weakKasheFactory(
-    cacheVariation => {
-      const cache = localCacheCreator(cacheVariation);
-      return (...rest: T) =>
-        withCacheScope(cache, () => fn(...rest))
+export function inboxed<T extends any[], K>(fn: (...args: T) => K, scope?: any): BoxedCall<T, K> {
+    const factory = weakKasheFactory(
+        scope,
+        cacheVariation => {
+            const cache = localCacheCreator(cacheVariation);
 
-    }
-  );
+            return (...rest: T) =>
+                withCacheScope(scope, cache, () => fn(...rest))
+        }
+    );
 
-  return (_, ...rest: T) => factory(_)(...rest);
+    return (_, ...rest: T) => factory(_)(...rest);
 }
 
 /**
  * Creates a clone of a kash-ed function with another internal cache.
  * Useful for isolation one kashe call from another
  * @param fn - function to memoize
- * @param [options]
- * @param [options.singleton=false] force single variant for all internal cache calls
- *
  * @see {@link inboxed} for argument based cache separation
+ * @see {@link withKasheIsolation} to just "fork" cache scope
  * @see https://github.com/theKashey/kashe#fork
  */
-export function fork<T extends any[], K>(fn: (...args: T) => K, options?: { singleton?: boolean }): (...args: T) => K {
-  const cache = localCacheCreator({});
-  const genLocalCache = () => localCacheCreator({});
-  return (...rest: T) => {
-    const cacheOverride = ((!options || !options.singleton) ? getCacheFor(cache, genLocalCache) : null) || cache;
-    return withCacheScope(cacheOverride, () => fn(...rest))
-  }
+export function fork<T extends any[], K>(
+    fn: (...args: T) => K,
+    {singleton = false, pointer = {}, scope}: {
+        /**
+         * forces single variant for all internal cache calls
+         */
+        singleton?: boolean;
+        scope?: any;
+        /**
+         * pointer to the "cache". Similar objects points to similar caches.
+         */
+        pointer?: any;
+    } = {},
+): (...args: T) => K {
+    const cache = localCacheCreator(pointer);
+    const genLocalCache = () => localCacheCreator({});
+
+    return (...rest: T) => {
+        const cacheOverride = (!singleton ? getCacheFor(scope, cache, genLocalCache) : null) || cache;
+
+        return withCacheScope(scope, cacheOverride, () => fn(...rest))
+    }
+}
+
+/**
+ * Starts a new isolated cache scope for all `kashe` calls made within the provided function.
+ *
+ * This creates a completely separate cache context, ensuring that all memoized functions
+ * called inside the provided function use their own isolated cache space. Perfect for
+ * per-request isolation in servers, test isolation, or any scenario where you need
+ * guaranteed cache separation.
+ *
+ * When combined with `UNSAFE_allowNoWeakKeys`, this enables React.cache-like behavior
+ * with proper isolation between different execution contexts.
+ *
+ * @param fn - The function to execute within the isolated cache scope
+ * @param options - Configuration options for the cache scope
+ * @returns The result of executing the provided function
+ *
+ * @see {@link inboxed} for argument-based cache separation
+ * @see {@link fork} for creating isolated function variants
+ * @see https://github.com/theKashey/kashe#withKasheIsolation
+ *
+ * @example
+ * ```ts
+ * // Server-side per-request isolation
+ * app.get('/api/data', (req, res) => {
+ *   withKasheIsolation(() => {
+ *     // All kashe calls inside get their own cache per request
+ *     const result = processExpensiveData(req.params);
+ *     res.json(result);
+ *   });
+ * });
+ *
+ * // Test isolation - each test gets clean cache
+ * test('should calculate correctly', () => {
+ *   withKasheIsolation(() => {
+ *     const result = expensiveCalculation(testData);
+ *     expect(result).toBe(expectedValue);
+ *   });
+ * });
+ *
+ * // React.cache replacement pattern
+ * const ReactCache = (fn) => kashe(fn, {
+ *   resolver: () => renderContext,
+ *   UNSAFE_allowNoWeakKeys: true
+ * });
+ *
+ * // Use in server component
+ * withKasheIsolation(() => {
+ *   const data = ReactCache(fetchData)(userId);
+ *   return <UserProfile data={data} />;
+ * });
+ * ```
+ */
+export function withKasheIsolation<K>(fn: () => K, {scope, pointer = {}}: {
+    scope?: any,
+    /**
+     * pointer to the "cache". Similar objects points to similar caches.
+     */
+    pointer?: any
+} = {}): K {
+    const cache = localCacheCreator(pointer);
+    const genLocalCache = () => localCacheCreator(pointer);
+    const cacheOverride = getCacheFor(scope, cache, genLocalCache) || cache;
+
+    return withCacheScope(scope, cacheOverride, fn)
 }

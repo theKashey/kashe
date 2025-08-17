@@ -1,19 +1,32 @@
-import {WeakStorage} from "./types";
-// default implementation
-import {syncCache} from './cache-models/sync-cache'
+import {syncCacheModel} from './cache-models/sync-cache.ts'
+import type {CacheModel} from "./cache-models/types.ts";
+import type {WeakStorage} from "./types.ts";
 
-let cacheModel = syncCache;
+// default implementation
+let cacheModelCreator = syncCacheModel;
+
+const models = new Map<any, CacheModel>();
 
 /**
  * configures new cache model to use
  * @param model
  */
-export const configureCacheModel = (model: typeof syncCache) => {
-    cacheModel = model;
+export const configureCacheModel = (modelCreator: () => CacheModel) => {
+    cacheModelCreator = modelCreator;
 }
 
-export const withCacheScope = <T>(cache: WeakStorage, fn: () => T) => cacheModel.withCacheScope(cache, fn);
+const getModel= (key:any = "__default"):CacheModel => {
+    if (models.has(key)) {
+        return models.get(key)!;
+    }
 
-export const getCacheOverride = () => cacheModel.getCacheOverride();
-export const getCacheFor = (fn: any, cacheCreator: () => WeakStorage) =>
-    cacheModel.getCacheFor(fn, cacheCreator);
+    const model = cacheModelCreator();
+    models.set(key, model);
+ 
+    return model;
+}
+
+export const withCacheScope = <T>(key:any, cache: WeakStorage, fn: () => T) => getModel(key).createCacheScope(cache, fn);
+
+export const getCacheFor = (key:any, fn: any, cacheCreator: () => WeakStorage) =>
+    getModel(key).getCacheFor(fn, cacheCreator);
