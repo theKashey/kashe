@@ -6,17 +6,60 @@ import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
 
+/**
+ * Configuration interface for kashe serialization behavior.
+ * Allows custom transformation of cached values for advanced use cases like TTL, compression, or validation.
+ *
+ * @template T - The original function return type
+ * @template K - The serialized storage type
+ *
+ * @example
+ * ```ts
+ * // TTL serializer example
+ * const ttlSerializer: KasheSerializer<any, {value: any, expires: number}> = {
+ *   writeTo: (value) => ({ value, expires: Date.now() + 60000 }),
+ *   readFrom: (entry) => Date.now() < entry.expires ? entry.value : undefined
+ * };
+ *
+ * const withTTL = kashe(expensiveFunction, { serializer: ttlSerializer });
+ * ```
+ */
 export type KasheSerializer<T = unknown, K = T> = {
     /**
-     * used to transform input into a value stored in the cache
-     * @default -> T => K
+     * Transforms the function result before storing in cache.
+     * Use this to add metadata, compress data, or perform any pre-storage transformation.
+     *
+     * @param input - The original function return value
+     * @returns The value to store in cache
+     * @default Identity function (input => input)
+     *
+     * @example
+     * ```ts
+     * writeTo: (result) => ({
+     *   value: result,
+     *   timestamp: Date.now(),
+     *   compressed: compress(result)
+     * })
+     * ```
      */
     writeTo?(input: T): K;
+
     /**
-     * used to transform valid from the cache into result, or reject to undefined
-     * @param input
+     * Transforms the cached value when retrieving from cache.
+     * Return `undefined` to indicate cache miss (e.g., for expired entries).
+     *
+     * @param input - The stored cache value
+     * @returns The value to return to caller, or undefined for cache miss
+     *
+     * @example
+     * ```ts
+     * readFrom: (entry) => {
+     *   if (Date.now() > entry.expires) return undefined; // Expired
+     *   return decompress(entry.compressed);
+     * }
+     * ```
      */
-    readFrom(input: K): T | undefined
+    readFrom(input: K): T | undefined;
 }
 export type WeakOptions<Return, Serialized> = {
     /**
