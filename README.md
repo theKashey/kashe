@@ -156,7 +156,9 @@ const memoized = kashe(
   Allows using `kashe` without any weak-mappable arguments. This is not recommended, as it can lead to memory leaks and unpredictable behavior.
   - `true` behavior is non default, and strongly not recommended unless you have `resolver` or _scoped_ in any other way.
   - `true` behavior is __similar to `React.cache` or `Reselect v5`__.
-  - setting `limit` option is advised
+  - configuring this option is NOT required if cache is scoped via `resolver`, `withIsolatedKashe` or `inboxed`.
+  - explicit `false` will be always respected
+  - setting `limit` option is advised 
   ```ts
   // Unsafe usage, not recommended
   const unsafe = kashe(fn, { UNSAFE_allowNoWeakKeys: true, limit: 100 });

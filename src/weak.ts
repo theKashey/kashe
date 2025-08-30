@@ -57,7 +57,8 @@ export type WeakOptions<Return, Serialized> = {
 const DEFAULT_SLICE = Symbol('kashe-default-slice');
 const getDefaultSlice = () => DEFAULT_SLICE;
 
-let generation = Symbol('kashe-generation');
+let generation = {_: Symbol('kashe-generation')};
+
 /**
  * Resets all caches created by `kashe` and its derivatives.
  * @example
@@ -70,7 +71,7 @@ let generation = Symbol('kashe-generation');
  * ```
  */
 export const resetKashe = () => {
-    generation = Symbol('kashe-generation');
+    generation = {_: Symbol('kashe-generation')};
 }
 
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
@@ -115,7 +116,14 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
             localCache.set(
                 thisArgs,
                 writeTo(result),
-                {limit, UNSAFE_allowNoWeakKeys}
+                {
+                    limit,
+                    UNSAFE_allowNoWeakKeys,
+                    minimalWeakArguments: 2,
+                    shouldCheckWeakArguments:
+                        options.UNSAFE_allowNoWeakKeys === false ||
+                        localCache === defaultCache && resolver == getDefaultSlice
+                }
             );
 
             return result;
@@ -244,9 +252,9 @@ type BoxedCall<T extends any[], K> = (state: object, ...rest: T) => K;
  * // result is "stored" in a first argument, using another key causes a new call
  * bAddTwo(otherCacheKey, 1, 2) // -> a new call
  */
-export function boxed<T extends any[], K>(fn: (...args: T) => K): BoxedCall<T, K> {
+export function boxed<Args extends any[], Return, Serialized = Return>(fn: (...args: Args) => Return, options?: WeakOptions<Return, Serialized>): BoxedCall<Args, Return> {
     // we just placing an extra argument at the beginning and instantly removing it
-    return kashe((_, ...rest: T) => fn(...rest));
+    return kashe((_, ...rest: Args) => fn(...rest), options);
 }
 
 

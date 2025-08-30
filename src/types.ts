@@ -37,6 +37,20 @@ type WeakStorageOptions = {
    * ```
    */
   UNSAFE_allowNoWeakKeys?: boolean;
+
+    /**
+     * Defines the minimal number of weak-mappable arguments required to use weak storage.
+     * Everything below the limit will require `UNSAFE_allowNoWeakKeys` to be set to true.
+     * @default 1
+     */
+  minimalWeakArguments?: number;
+
+    /**
+     * If true, forces checking the number of weak-mappable arguments against `minimalWeakArguments`.
+     * If false, skips the check and allows caching regardless of weak argument count.
+     * @default true
+     */
+    shouldCheckWeakArguments?: boolean;
 }
 
 /**
