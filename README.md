@@ -142,7 +142,9 @@ const memoized = kashe(
   });
   ```
 - **`scope?: any`** 
-    Allows you to specify a custom cache scope. Useful for advanced scenarios where you need to control cache isolation manually.
+    Allows you to specify a custom cache scope. Useful for advanced scenarios where you need to control cache isolation manually. 
+    - `scope` do apply only with "isolation" in place - `inboxed`, `fork` or `withIsolatedKashe`.
+    - `scope` has no meaning without any of the above. If explicit isolation is not used - default to `resolver` to separate caches.
     ```ts
     // normal kashe call that we would scope per request
     const defaultScoped = kashe(fetchUserData);
@@ -277,6 +279,18 @@ const entry = storage.get([key1, key2]);
   - `options` can include
     - `limit` to limit the amount of cached "simple" values (similar to `kashe`'s `limit` option)
     - `UNSAFE_allowNoWeakKeys` to control the enforcement of at least one arg to be weak-mappable (default is `false`)
+
+### `resetKashe()`
+Resets all caches created by `kashe`. Useful for testing to ensure a clean state between tests.
+
+```ts
+import {resetKashe} from 'kashe';
+
+afterEach(() => {
+    // clears up all caches
+    resetKashe();
+});
+```
 
 ---
 

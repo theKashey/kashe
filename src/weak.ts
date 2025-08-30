@@ -57,6 +57,22 @@ export type WeakOptions<Return, Serialized> = {
 const DEFAULT_SLICE = Symbol('kashe-default-slice');
 const getDefaultSlice = () => DEFAULT_SLICE;
 
+let generation = Symbol('kashe-generation');
+/**
+ * Resets all caches created by `kashe` and its derivatives.
+ * @example
+ * ```ts
+ * import {resetKashe} from 'kashe'
+ * // clear all caches
+ * afterEach(() => {
+ *   resetKashe();
+ * });
+ * ```
+ */
+export const resetKashe = () => {
+    generation = Symbol('kashe-generation');
+}
+
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
     /**
      * memoizes a function
@@ -82,7 +98,7 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
         return functionDouble(function (this: any, ...args: any[]) {
             const localCache = getCacheFor(options.scope, _this_, cacheCreator) || defaultCache;
             const usedArgs = mapper ? args.map(mapper) : args;
-            const thisArgs = [this, resolver(), ...usedArgs];
+            const thisArgs = [generation, this, resolver(), ...usedArgs];
             const test = localCache.get(thisArgs);
 
             if (test) {
