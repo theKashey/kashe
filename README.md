@@ -19,7 +19,7 @@ A controllable, safe, and universal memoization library for JavaScript and TypeS
 
 - **Memory safe**: Uses WeakMap to prevent memory leaks
 - **Per-request isolation**: Cache slicing with `resolver` option
-- **Advanced control**: TTL with `serializer`, cache limits, and more
+- **Advanced control**: TTL with `serializer`, LRU cache limits, and more
 - **Universal**: Works in browsers, Node.js, SSR, and test environments
 
 ---
@@ -126,7 +126,7 @@ const memoized = kashe(
   ```
 
 - **`limit?: number`**  
-  Limits how many primitive argument combinations are cached. Helps control memory usage.
+  Limits how many primitive argument combinations are cached. Helps control memory usage. Before limit is reached no extra logic is applied. Once limit is reached, the Least Recently Used record is dropped from cache.
   ```ts
   const limited = kashe(fn, { limit: 50 }); // Max 50 primitive values "per argument"
   ```

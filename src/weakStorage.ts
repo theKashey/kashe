@@ -23,6 +23,7 @@ type Test = {
     storedValue?: any;
     strong?: Mappable<Test>;
     weak?: Mappable<Test>;
+    overflowed?: boolean;
 }
 
 /**
@@ -58,11 +59,19 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
         }
 
         for (let i = 0; i < strongs.length; ++i) {
+            const current = test;
             readFrom = test.strong;
             test = readFrom?.get(strongs[i]);
 
             if (!test) {
                 return undefined
+            }
+
+            // emulate LRU by reinserting the key
+            if(current.overflowed) {
+                const mapBase = readFrom as Map<any, Test>;
+                mapBase.delete(strongs[i]);
+                mapBase.set(strongs[i], test);
             }
         }
 
@@ -106,6 +115,7 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
 
         // pass for POJO arguments
         for (let i = 0; i < strongs.length; ++i) {
+            const current=next;
             writeTo = next.strong;
 
             if (!writeTo) {
@@ -116,16 +126,17 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
 
             if (!next || !next.strong) {
                 next = {
-                    strong: new Map(),
+                   strong: new Map(),
                 };
 
-                if( options?.limit) {
+                if(options?.limit) {
                     const mapBase = writeTo as Map<any, Test>;
 
                     // if we are going above limit - remove the first(oldest?) key
                     if (mapBase.size >= options.limit) {
                         const firstKey = mapBase.keys().next().value;
                         mapBase.delete(firstKey);
+                        current.overflowed = true;
                     }
                 }
 

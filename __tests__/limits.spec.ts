@@ -17,5 +17,10 @@ describe('kashe serializer', () => {
         expect(fn(key, 3)).toBe(2);
         expect(fn(key, 1)).toBe(3); // reset
         expect(fn(key, 3)).toBe(2); // not reset
+        expect(fn(key, 3)).toBe(2); // not reset
+
+        expect(fn(key, 4)).toBe(4);
+        expect(fn(key, 3)).toBe(2);// no reset
+        expect(fn(key, 1)).toBe(5);// LRU resetexpect(fn(key, 2)).toBe(5);// LRU reset
     })
 })
