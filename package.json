@@ -1,6 +1,6 @@
 {
   "name": "kashe",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Stateless weak memoization replacement for reselect and memoize-one",
   "main": "./dist/es5/index.js",
   "module": "./dist/es2015/index.js",
