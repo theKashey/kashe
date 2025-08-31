@@ -2,6 +2,7 @@ import {getCacheFor, withCacheScope} from "./cache.ts";
 // removed "in" until it's ESM compatible
 import {functionDouble} from "./function-double.ts";
 import type {WeakStorage} from "./types.ts";
+import {isWeakable, Stringify} from "./utils";
 import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
@@ -66,7 +67,7 @@ export type WeakOptions<Return, Serialized> = {
      * specifies a cache resolved. Can be used to create "independent slices" of the cache.
      * If not specified, a single slice is used.
      */
-    resolver?: () => object | symbol;
+    resolver?: () => object;
     /**
      * limits the number of non-primitive arguments stored in the cache.
      * there are no limits for weak references, and no way to even count them
@@ -97,10 +98,10 @@ export type WeakOptions<Return, Serialized> = {
     scope?: any;
 }
 
-const DEFAULT_SLICE = Symbol('kashe-default-slice');
+const DEFAULT_SLICE = {[Symbol('kashe-default-slice')]:true};
 const getDefaultSlice = () => DEFAULT_SLICE;
 
-let generation = {_: Symbol('kashe-generation')};
+let generation = {[Symbol('kashe-generation')]: true};
 
 /**
  * Resets all caches created by `kashe` and its derivatives.
@@ -114,7 +115,7 @@ let generation = {_: Symbol('kashe-generation')};
  * ```
  */
 export const resetKashe = () => {
-    generation = {_: Symbol('kashe-generation')};
+    generation = {[Symbol('kashe-generation')]: true};
 }
 
 export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeakStorage, mapper?: (x: any, index: number) => any) {
@@ -142,7 +143,17 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
         return functionDouble(function (this: any, ...args: any[]) {
             const localCache = getCacheFor(options.scope, _this_, cacheCreator) || defaultCache;
             const usedArgs = mapper ? args.map(mapper) : args;
-            const thisArgs = [generation, this, resolver(), ...usedArgs];
+            const resolvedTo = resolver();
+
+            const resolved = Array.isArray(resolvedTo) ? resolvedTo : [resolvedTo];
+
+            if(!resolved.some(isWeakable)){
+                console.error('incorrect resolver value', resolvedTo);
+                throw new Error('kashe: resolver must return a non-primitive value. If it returns an array, at least one value must be non-primitive.');
+            }
+
+
+            const thisArgs = [generation, this, ...resolved, ...usedArgs];
             const test = localCache.get(thisArgs);
 
             if (test) {
@@ -162,7 +173,7 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
                 {
                     limit,
                     UNSAFE_allowNoWeakKeys,
-                    minimalWeakArguments: 2,
+                    minimalWeakArguments: 3/* generation + resolver + arg*/,
                     shouldCheckWeakArguments:
                         options.UNSAFE_allowNoWeakKeys === false ||
                         localCache === defaultCache && resolver == getDefaultSlice
@@ -250,7 +261,7 @@ export const weakKashe = (indexes: number[]) => {
         throw new Error('weakKashe requires an array of indexes to use as a weak keys');
     }
 
-    return weakMemoizeCreator(createWeakStorage, (arg, i) => indexes.includes(i) ? String(arg) : arg);
+    return weakMemoizeCreator(createWeakStorage, (arg, i) => indexes.includes(i) ? Stringify(arg) : arg);
 }
 
 function weakKasheFactory<T extends any[], Return>

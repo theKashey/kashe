@@ -15,14 +15,13 @@
 
 # kashe
 
-A controllable, safe, and universal memoization library for JavaScript and TypeScript. `kashe` is built on the principles of **weak memoization**, offering a robust solution for modern applications. It addresses common challenges in memoization, such as memory leaks, cross-request safety, and test predictability, while providing advanced features like cache slicing, TTL, and per-request isolation.
+A controllable, safe, and universal **data derivation** library for JavaScript and TypeScript. `kashe` is built on the principles of **weak memoization**, offering a robust solution for modern applications. It's a tool to **derive data from data**. It addresses common challenges in memoization, such as memory leaks, cross-request safety, and test predictability, while providing advanced features like cache slicing, TTL, and per-request isolation.
 
-- **Memory safe**: Uses WeakMap to prevent memory leaks
-- **Per-request isolation**: Cache slicing with `resolver` option
-- **Advanced control**: TTL with `serializer`, LRU cache limits, and more
-- **Universal**: Works in browsers, Node.js, SSR, and test environments
-
----
+- **Memory safe**: Uses WeakMap to store data and prevent memory leaks.
+- **Per-request isolation**: Cache _slicing_ with `resolver` option.
+- **Advanced control**: TTL with `serializer`, LRU cache limits, and more.
+- **Universal**: Works in browsers, Node.js, SSR, and test environments.
+- **Modern**: Written in TypeScript, with full ESM and CJS support, and extensive generics.
 
 ## Quick Start
 
@@ -45,9 +44,41 @@ const result2 = expensiveCalculation(myState, value1);
 const result3 = expensiveCalculation(myState, value2);
 ```
 
-The simple usage of `kashe` is almost completely equal to React.cache. Feel free to refer to [their documentation](https://react.dev/reference/react/cache) for other use cases.
+The simple usage of `kashe` is almost completely equal to `React.cache`. Feel free to refer to [their documentation](https://react.dev/reference/react/cache) for other use cases.
 
----
+## Design Philosophy & Non-Goals
+
+- Kashe is **not** a drop-in replacement for every memoization library. It's designed with specific principles that prioritize **memory safety and leak prevention** over convenience features.
+- Kashe **is** a drop-in replacement for every memoization library. Just follow the rules and configure it properly.
+- Kashe is not yet another "memoization" library. Its a tool to **derive data from data**.
+
+```tsx
+// standard memoization - remembers arguments and results
+const processor = memoizationFunction((array) => array.map(x => x * 2));
+
+// kashe - remembers that data was derived from data
+const processor = kashe((array) => array.map(x => x * 2));
+```
+They look the same, but there is big difference.
+
+### Core Principles ✅
+
+- **Memory leaks are more important than developer convenience**: Kashe requires at least one object argument for weak references. No extra steps are needed if any _scoping_ is active.
+- **Data lifecycle is coupled with argument lifecycle**: Cache entries are automatically cleaned up when arguments are garbage collected. No separate eviction policies are needed.
+- **Reference equality only**: All objects are stored in a WeakMap and cannot be fetched back for comparison. Custom equality comparators would require strong references, risking leaks.
+- **Comprehensive memoization over raw performance**: Kashe trades micro-optimizations for the ability to memoize more cases safely, saving overall application time.
+
+### Intentional Non-Goals ❌
+
+- **Native primitive-only argument support**: Disabled by default to prevent accidental memory leaks, but can be enabled through scoping or `UNSAFE_allowNoWeakKeys`.
+- **Custom/deep equality comparators**: Would break the weak reference model and risk memory leaks.
+- **Separate eviction policies**: Cache lifecycle follows the argument lifecycle by design.
+- **Performance optimization for simple cases**: The focus is on comprehensive, safe memoization.
+
+### What This Means for You
+
+- **Perfect for**: SSR, concurrent environments, long-running applications, multi-tenant systems.
+- **Not ideal for**: Simple primitive-only functions, scenarios requiring deep equality, or performance-critical micro-optimizations.
 
 ## Core Concepts
 
@@ -117,16 +148,20 @@ const memoized = kashe(
 
 - **`resolver?: () => object | symbol`**  
   Creates isolated cache slices. Each unique return value gets its own cache.
+  Resolver must return an object or array. In case of array at least one item must be a non primitive.
   ```ts
   // Per-request caching
   const perRequest = kashe(fn, { resolver: () => currentRequest });
   
   // Per-user caching  
   const perUser = kashe(fn, { resolver: () => currentUser });
+  
+  // Per-request and per-user caching  
+  const perAll = kashe(fn, { resolver: () => [currentRequest,currentUser] });  
   ```
 
 - **`limit?: number`**  
-  Limits how many primitive argument combinations are cached. Helps control memory usage. Before limit is reached no extra logic is applied. Once limit is reached, the Least Recently Used record is dropped from cache.
+  Limits how many primitive argument combinations are cached. Helps control memory usage. Before the limit is reached, no extra logic is applied. Once the limit is reached, the Least Recently Used record is dropped from the cache.
   ```ts
   const limited = kashe(fn, { limit: 50 }); // Max 50 primitive values "per argument"
   ```
@@ -143,8 +178,8 @@ const memoized = kashe(
   ```
 - **`scope?: any`** 
     Allows you to specify a custom cache scope. Useful for advanced scenarios where you need to control cache isolation manually. 
-    - `scope` do apply only with "isolation" in place - `inboxed`, `fork` or `withIsolatedKashe`.
-    - `scope` has no meaning without any of the above. If explicit isolation is not used - default to `resolver` to separate caches.
+    - `scope` applies only when "isolation" is in place - `inboxed`, `fork` or `withKasheIsolation`.
+    - `scope` has no meaning without any of the above. If explicit isolation is not used, default to `resolver` to separate caches.
     ```ts
     // normal kashe call that we would scope per request
     const defaultScoped = kashe(fetchUserData);
@@ -154,11 +189,11 @@ const memoized = kashe(
 
 - **`UNSAFE_allowNoWeakKeys?: boolean`**  
   Allows using `kashe` without any weak-mappable arguments. This is not recommended, as it can lead to memory leaks and unpredictable behavior.
-  - `true` behavior is non default, and strongly not recommended unless you have `resolver` or _scoped_ in any other way.
+  - `true` behavior is non-default and strongly not recommended unless you have `resolver` or are _scoped_ in any other way.
   - `true` behavior is __similar to `React.cache` or `Reselect v5`__.
-  - configuring this option is NOT required if cache is scoped via `resolver`, `withIsolatedKashe` or `inboxed`.
-  - explicit `false` will be always respected
-  - setting `limit` option is advised 
+  - Configuring this option is NOT required if the cache is scoped via `resolver`, `withKasheIsolation` or `inboxed`.
+  - An explicit `false` will be always respected.
+  - Setting the `limit` option is advised.
   ```ts
   // Unsafe usage, not recommended
   const unsafe = kashe(fn, { UNSAFE_allowNoWeakKeys: true, limit: 100 });
@@ -167,12 +202,12 @@ const memoized = kashe(
 
 ### `weakKashe(weakArgs)(func, options?)`
 
-Relaxed version that uses string comparison for specified argument positions.
+A relaxed version that uses string comparison for specified argument positions.
 
 ```ts
 import { weakKashe } from 'kashe';
 
-// Mark second argiment (transform) as weakly compared
+// Mark the second argument (transform) as weakly compared
 const mapper = weakKashe([1])((data, transform) => data.map(transform));
 
 mapper(data, x => x * 2); // running transformation
@@ -222,16 +257,16 @@ const independent = fork(original); // Separate cache, same function
 original(data) !== independent(data); // Different caches
 ```
 
-### `withIsolatedKashe(func, options?)`
+### `withKasheIsolation(func, options?)`
 
 Starts a new cache scope for all `kashe` calls made within the provided function. Perfect for per-request isolation or creating completely isolated cache contexts.
 
 ```ts
-import { withIsolatedKashe } from 'kashe';
+import { withKasheIsolation } from 'kashe';
 
 // Per-request isolation in a server
 app.get('/api/data', (req, res) => {
-  withIsolatedKashe(() => {
+  withKasheIsolation(() => {
     // All kashe calls inside get their own isolated cache
     const result = processData(req.params); // Cached per request
     res.json(result);
@@ -249,22 +284,22 @@ test('should have isolated cache', () => {
 ```
 
 #### Options
-- **`scope?: any`** - Custom cache scope for advanced scenarios
-- **`pointer?: any`** - Custom pointer object for cache identification (default: `{}`"new object")
+- **`scope?: any`** - Custom cache scope for advanced scenarios.
+- **`pointer?: any`** - Custom pointer object for cache identification (default: new object `{}`).
 
-> 💡`pointer` acts the same way as `resolver` for kashe, or first argument for `boxed` and `inboxed` - the same value will point to the same cache. While this is a tool of separation, it can be used as tool of union
+> 💡`pointer` acts the same way as `resolver` for kashe, or the first argument for `boxed` and `inboxed` - the same value will point to the same cache. While this is a tool of separation, it can be used as a tool of union.
 
-⚠️ all "cache scope" powered function are working "properly" only if controlled directly by user (like custom `resolver`) or if wrapped locations are `sync`.
-Correct "thread safe" behavior is only possible with `asyncLocalStorageModel`, see below.
+⚠️ All "cache scope" powered functions work "properly" only if controlled directly by the user (like a custom `resolver`) or if wrapped locations are `sync`.
+Correct "thread-safe" behavior is only possible with `asyncLocalStorageModel`, see below.
 
 > Cheatsheet:
-> - `kashe` and `weakKashe` are the main memoization functions. The difference is that `weakKashe` provides a way to _ease_ argument comparison.
-> - `boxed` and `inboxed` prepends given function with an extra argument, which is used as a cache key. The difference is how "deep" change goes.
-> - `fork` and `withKasheIsolation` are quite alike, but one is more return a function and another executes.
+> - `kashe` and `weakKashe` are the primary memoization functions. `weakKashe` offers relaxed comparison for specified arguments.
+> - `boxed` and `inboxed` prepend a cache-key argument. `inboxed` affects nested `kashe` calls, while `boxed` does not.
+> - `fork` and `withKasheIsolation` create isolated cache scopes. `fork` returns a new function, while `withKasheIsolation` executes a given function within the scope.
 
 
 ### `createWeakStorage()`
-It's worth to mention that all commands above are just a think layer around `createWeakStorage`. You can use it to do your own magic tricks.
+It's worth mentioning that all commands above are just a thin layer around `createWeakStorage`. You can use it to do your own magic tricks.
 
 ```ts
 import { createWeakStorage } from 'kashe';
@@ -334,8 +369,8 @@ app.get('/api/user', (req, res) => {
 +   });
 + });
 ```
-While it might look a little bit more verbose, it gives you a full control over cache isolation and memory usage.
-And is not limited to ServerComponents (or React at all).
+While it might look a little bit more verbose, it gives you full control over cache isolation and memory usage
+and is not limited to ServerComponents (or React at all).
 
 ### TTL (Time-To-Live) Caching
 
@@ -355,6 +390,22 @@ const cacheWithTTL = kashe(
     }
   }
 );
+```
+
+### Promise/Async memoization
+
+A function returning a Promise can be memoized like any other. `kashe` will cache the promise itself, so subsequent calls with the same arguments will receive the same promise instance.
+
+```ts
+// A function returning a Promise can be memoized like any other
+const fetchUser = kashe(async (id: string) => {
+  const res = await fetch(`/api/users/${id}`);
+  return res.json();
+});
+
+// After the first call caches the promise, subsequent calls reuse it
+await fetchUser('42');
+const again = fetchUser('42'); // returns the same Promise instance if cached
 ```
 
 ### Memory-Limited Caching
@@ -387,23 +438,45 @@ tenantIsolatedCache(query); // Separate cache for tenant-b
 
 ---
 
-## Troubleshoting
+## Troubleshooting
 #### solving `Error: No weak-mappable object found to read a cache from.`
-If all agruments provided to a function are a non "weak-mappable" object (like array, object, function, symbol) - kashe would throw.
-This is intentional, as long as it stores cache inside such objects, and without them it could not work.
+If all arguments provided to a function are non "weak-mappable" objects (like primitives: numbers, strings, booleans) - kashe will throw.
 
-There are only two ways to solve it:
-- dont use `kashe` for function with only primitive types 🥲
-- or specify `resolver` to create a `cache scope` and make it "contain" information 
+**This is intentional by design** - kashe stores cache inside objects using WeakMap, and without them, it cannot work safely.
+
+**Deliberate design choice**: Memory leaks are more important than developer convenience. This error prevents potential memory disasters.
+
+There are three ways to solve it:
+- **Recommended**: Don't use `kashe` for functions with only primitive types; use a different library designed for that use case.
+- **Advanced**: Specify `resolver` to create a `cache scope` that provides the necessary object reference.
+- **Unsafe**: Use `UNSAFE_allowNoWeakKeys: true` with a `limit` (not recommended as it risks memory leaks).
+
+```ts
+// ❌ Will throw - all primitives
+const bad = kashe((x: number, y: string) => x + y.length);
+
+// ✅ Works - has object argument  
+const good = kashe((state: State, x: number) => state.compute(x));
+
+// ✅ Works - uses resolver for scoping
+const scoped = kashe((x: number, y: string) => x + y.length, {
+  resolver: () => currentRequest // Provides object reference
+});
+
+// ✅ Works - explicitly unsafe, but allowed
+const unsafeButWorking = kashe((x: number, y: string) => x + y.length, {
+    UNSAFE_allowNoWeakKeys: true,
+    limit: 1000, // A limit is strongly recommended to mitigate leak risks
+});
+```
 
 # See also
 ## Memoize-one
-`kashe` could not replace `memoize-one` as long as it requires at least one argument to be a object or array.
-But if at least one is in list - go for it.
+`kashe` is a capable replacement for `memoize-one`. However, if a function is called only with primitive arguments, you must enable `UNSAFE_allowNoWeakKeys` or use a scoping mechanism (`resolver`, `inboxed`, etc.) to avoid an error.
 
 ## React.useMemo
-You may use React.useRef/useState/Context to create and propagate a per-instance, or per-tree variable, you may use
-for `kashe`
+You may use React.useRef/useState/Context to create and propagate a per-instance, or per-tree "variable" to scope `kashe`.
+Or you may use `kashe` without anything extra.
 
 ```js
 const KasheContext = React.createContext();
@@ -424,25 +497,25 @@ const OtherComponent = () => {
   const memoizedData2 = memoizedFunction(localKasheKey, firstArgument, secondArgument);
 }
 ```
-So - almost the same as `React.useMemo`, well closer to `React.cache`, but you might use it in Class Components, `mapStateToProps`, server, client, anywhere.
+So - almost the same as `React.useMemo`, almost equal to `React.cache`, but you might use it in Class Components, `mapStateToProps`, server, client, anywhere.
 
-### more like useMemo 
+### more like useMemo
 💡 `weakKashe` was created to allow you to inline function implementation, but this operation might be "unsafe"
 ```tsx
-// we will compare very first argument by it's string representation
+// we will compare very first argument by its string representation
 const useKashe = weakKashe([0])((fn, deps) => fn(...deps));
 
 const MyComponent = ({value}) => {
   // use `useMemo` creates a separate cache in every component
   const reactMemo = useMemo(() => computeExpensiveValue(value), [value]);
-  
+
   // use `useKashe` shares a cache across all components
-  // it's "scoped" by `value` and at least one dependencies
+  // it's "scoped" by `value` and at least one dependency
   const memoizedValue = useKashe(() => computeExpensiveValue(value), [value]);
-  
+
   return <div>{memoizedValue}</div>;
 };
-``` 
+```
 
 ## mapStateToProps
 `kashe` can fully replace `reselect`. It was [natively supported](https://github.com/theKashey/kashe/blob/v2.0.0/src/reselect.ts#L5) up to v2.
@@ -484,8 +557,8 @@ selectItemsByCategory(state, 'Electronics') // Still cached!
 ```
 
 ## Cache Model Configuration
-By default, `kashe` uses a synchronous cache scoping model. 
-Scoping only occur when you use `fork` or `inboxed` helpers, or wrap location with `withKasheIsolation` and not in any other cases.
+By default, `kashe` uses a synchronous cache scoping model.
+Scoping occurs only when you use `fork` or `inboxed` helpers, or wrap location with `withKasheIsolation` and not in any other cases.
 However any invocation of `kashe` will refer to the current cache model and obey it.
 
 For advanced scenarios like server-side rendering with request isolation, you can configure a different cache model.
@@ -499,12 +572,12 @@ import { configureCacheModel } from 'kashe';
 import { asyncLocalStorageModel } from 'kashe/async-local-storage-cache';
 
 // Switch to async cache model
-configureCacheModel(asyncNodeCache);
+configureCacheModel(asyncLocalStorageModel);
 ```
 
 ### Built-in Cache Models
 
-#### Async Node Cache (`kashe/async-node-cache`)
+#### Async Local Storage Cache (`kashe/async-local-storage-cache`)
 
 Uses Node.js `AsyncLocalStorage` for automatic per-request cache isolation. Perfect for server-side applications where you need to prevent cache leakage between different requests.
 
@@ -513,7 +586,7 @@ import { configureCacheModel } from 'kashe';
 import { asyncLocalStorageModel } from 'kashe/async-local-storage-cache';
 
 // Configure async cache model
-configureCacheModel(asyncNodeCache);
+configureCacheModel(asyncLocalStorageModel);
 
 const processData = kashe((data) => expensiveOperation(data));
 
@@ -535,30 +608,30 @@ app.use((req, res, next) => {
 #### Sync Cache (default)
 
 The default synchronous cache model using WeakMap. Suitable for client-side applications and simple server scenarios.
-Warning: Sync cache is not expected to be able to properly handle async operations.  
+Warning: Sync cache is not expected to be able to properly handle async operations.
 
 ### Multiple Cache Models
-Sometimes you even might want to use custom cache modeles or reuse implementation of existing ones to have multiple caching realities at the same time.
+Sometimes you even might want to use custom cache models or reuse implementation of existing ones to have multiple caching realities at the same time.
 
 💡by default there is one active cache model, and if you called `withKasheIsolation` - two different requests will be NEVER able to share cache.
-However you can provide `cacheModel` to the `kashe` function let them coexists.
+However you can provide `cacheModel` to the `kashe` function to let them coexist.
 
 ### Custom Cache Models
 You can implement custom cache models by providing an object with the required interface.
 ```ts
 import {configureCacheModel, createWeakStorage} from 'kashe';
 
-const getCurrentDispatcher = () => SECRET_INTERNALS_DO_NOT_USE_OR_GET_FIRED.currentDispatcher; 
+const getCurrentDispatcher = () => SECRET_INTERNALS_DO_NOT_USE_OR_GET_FIRED.currentDispatcher;
 const customDispatcherModel = () => {
     const localStorage = createWeakStorage();
     return {
-        withCacheScope: (cache, fn) => {
+        createCacheScope: (cache, fn) => {
             // Run function with cache scope
             throw new Error('scoping is not implemented');
         },
         getCacheFor: (fn, cacheCreator) => {
-            // create different caches for diferent dispatchers
-            // technically equal to setting `resolver` to each `kashey` call
+            // create different caches for different dispatchers
+            // technically equal to setting `resolver` to each `kashe` call
             const args = [fn, getCurrentDispatcher()];
             const cache = localStorage.get(args);
 
@@ -574,10 +647,13 @@ const customDispatcherModel = () => {
     }
 };
 
-configureCacheModel(customCacheModel);
+configureCacheModel(customDispatcherModel);
 ```
 
 # Speed
+
+**Performance Philosophy**: Raw speed is not the goal - comprehensive memoization and memory safety are. Kashe trades micro-optimizations for the ability to memoize more cases safely, saving overall application time.
+
 ```html
 // a simple one argument function, 100% results cached
 memoize-one one argument  x 58,277,071 ops/sec ±1.60% (87 runs sampled)
@@ -591,6 +667,8 @@ kashe       two arguments x 16,929,449 ops/sec ±0.84% (89 runs sampled)
 memoize-one    two states x   308,917 ops/sec ±0.56% (92 runs sampled)
 kashe          two states x 8,992,170 ops/sec ±0.96% (83 runs sampled)
 ```
+
+**The real story**: While kashe is slower in simple cases, it excels where other libraries fail. In the "two states" benchmark, kashe maintains 100% cache hit rate (8.9M ops/sec) while memoize-one degrades to ~300K ops/sec due to cache invalidation. This demonstrates kashe's strength: **consistent performance across complex scenarios where cache management matters most**.
 
 # Something to read
 - https://dev.to/thekashey/weak-memoization-in-javascript-4po6

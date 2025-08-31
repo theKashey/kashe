@@ -57,4 +57,39 @@ describe('slices', () => {
         expect(fn(key)).toBe(0);
         expect(fn({})).toBe(1);
     });
+
+    it('uses array resolver', () => {
+        const heap1 = {index: 0};
+        const heap2 = {index: 100};
+        let currentHeap = heap1;
+
+        const reality1 = {};
+        const reality2 = {};
+
+        let currentReality = reality1;
+        const getReality = () => ['test', currentReality];
+
+
+
+        const fn = kashe((_x) => currentHeap.index++, {resolver: getReality});
+
+        const key = {};
+
+        expect(fn(key)).toBe(0);
+        expect(fn(key)).toBe(0);
+
+        // switch to another reality
+        currentReality = reality2;
+        currentHeap = heap2;
+
+        expect(fn(key)).toBe(100);
+        expect(fn(key)).toBe(100);
+
+        // switch to another reality
+        currentReality = reality1;
+        currentHeap = heap1;
+
+        expect(fn(key)).toBe(0);
+        expect(fn({})).toBe(1);
+    })
 });
