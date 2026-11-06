@@ -1,6 +1,6 @@
 import {syncCacheModel} from '../src/cache-models/sync-cache.ts';
 import {configureCacheModel} from '../src/cache.ts';
-import {withKasheIsolation} from '../src';
+import {withKasheIsolation} from '../src/index.ts';
 
 describe('configureCacheModel', () => {
     afterEach(() => configureCacheModel(syncCacheModel));

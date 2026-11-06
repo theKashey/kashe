@@ -1,4 +1,4 @@
-import {kashe} from '../src';
+import {kashe} from '../src/index.ts';
 
 describe('a memoized function keeps the shape of the original', () => {
     it.each([

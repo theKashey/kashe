@@ -2,9 +2,10 @@
 import {setFlagsFromString} from 'v8';
 import {runInNewContext} from 'vm';
 
-import {kashe} from '../src';
+import {kashe} from '../src/index.ts';
 
 setFlagsFromString('--expose-gc');
+
 const collectGarbage: () => void = runInNewContext('gc');
 
 const collected = async (ref: WeakRef<object>) => {

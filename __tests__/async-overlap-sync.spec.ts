@@ -1,4 +1,4 @@
-import {kashe, withKasheIsolation} from '../src';
+import {kashe, withKasheIsolation} from '../src/index.ts';
 
 const deferred = () => {
     let resolve!: () => void;

@@ -4,9 +4,10 @@ import {runInNewContext} from 'vm';
 
 import {syncCacheModel} from '../src/cache-models/sync-cache.ts';
 import {configureCacheModel} from '../src/cache.ts';
-import {kashe, withKasheIsolation} from '../src';
+import {kashe, withKasheIsolation} from '../src/index.ts';
 
 setFlagsFromString('--expose-gc');
+
 const collectGarbage: () => void = runInNewContext('gc');
 
 const collected = async (ref: WeakRef<object>) => {
@@ -46,6 +47,7 @@ describe('cache scopes', () => {
         configureCacheModel(create);
 
         withKasheIsolation(() => undefined, {scope: 'a'});
+
         const known = create.mock.calls.length;
 
         withKasheIsolation(() => undefined, {scope: 'a'});

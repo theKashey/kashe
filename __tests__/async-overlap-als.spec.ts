@@ -1,6 +1,6 @@
 import {asyncLocalStorageModel} from '../src/cache-models/async-local-storage-cache.ts';
 import {configureCacheModel} from '../src/cache.ts';
-import {kashe, withKasheIsolation} from '../src';
+import {kashe, withKasheIsolation} from '../src/index.ts';
 
 const deferred = () => {
     let resolve!: () => void;
@@ -19,6 +19,7 @@ describe('async local storage model with overlapping scopes', () => {
         const key = {};
         const gateA = deferred();
         const gateB = deferred();
+
         const inside = async (gate: Promise<void>) => {
             const before = fn(key);
             await gate;
@@ -30,8 +31,10 @@ describe('async local storage model with overlapping scopes', () => {
         const scopeB = withKasheIsolation(() => inside(gateB.promise));
 
         gateA.resolve();
+
         const [beforeA, afterA] = await scopeA;
         gateB.resolve();
+
         const [beforeB, afterB] = await scopeB;
 
         expect(afterA).toBe(beforeA);
