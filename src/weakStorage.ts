@@ -33,7 +33,7 @@ type Test = {
     storedValue?: any;
     strong?: Mappable<Test>;
     weak?: Mappable<Test>;
-    overflowed?: boolean;
+    limited?: boolean;
 }
 
 /**
@@ -81,7 +81,7 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
             }
 
             // emulate LRU by reinserting the key
-            if(current.overflowed) {
+            if(current.limited) {
                 const mapBase = readFrom as Map<any, Test>;
                 mapBase.delete(strongs[i]);
                 mapBase.set(strongs[i], test);
@@ -145,11 +145,13 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
                 if(options?.limit) {
                     const mapBase = writeTo as Map<any, Test>;
 
+                    // reads keep the order from the first entry on, the limit is only known here
+                    current.limited = true;
+
                     // if we are going above limit - remove the first(oldest?) key
                     if (mapBase.size >= options.limit) {
                         const firstKey = mapBase.keys().next().value;
                         mapBase.delete(firstKey);
-                        current.overflowed = true;
                     }
                 }
 
