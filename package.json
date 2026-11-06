@@ -38,7 +38,10 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "changelog:rewrite": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
-  "repository": "https://github.com/theKashey/kashe/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theKashey/kashe.git"
+  },
   "author": "theKashey <thekashey@gmail.com>",
   "license": "MIT",
   "devDependencies": {

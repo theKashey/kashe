@@ -6,8 +6,8 @@
   <a href="https://www.npmjs.com/package/kashe">
     <img src="https://img.shields.io/npm/v/kashe.svg?style=flat-square" />
   </a>
-  <a href="https://travis-ci.org/theKashey/kashe">
-    <img alt="Travis" src="https://img.shields.io/travis/theKashey/kashe/master.svg?style=flat-square">
+  <a href="https://github.com/theKashey/kashe/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/theKashey/kashe/ci.yml?branch=master&style=flat-square">
   </a>
 </div>
 
@@ -678,6 +678,20 @@ kashe          two states x 8,992,170 ops/sec ±0.96% (83 runs sampled)
 # Something to read
 - https://dev.to/thekashey/weak-memoization-in-javascript-4po6
 - https://dev.to/thekashey/memoization-forget-me-bomb-34kh
+
+# Releasing
+
+Publishing happens in [the release workflow](.github/workflows/release.yml), never from a laptop: it runs for a `v*` tag that equals the version in `package.json`, builds, tests and publishes with provenance.
+
+```bash
+npm version patch --no-git-tag-version # or minor, major
+yarn changelog
+git commit -am "chore: release v3.2.3"
+git tag v3.2.3
+git push origin master v3.2.3
+```
+
+The workflow holds no npm token. It needs one setup on npmjs.com, done once by a package owner: open `kashe`, Settings, Trusted Publisher, choose GitHub Actions, and enter the organization or user `theKashey`, the repository `kashe` and the workflow `release.yml`, with no environment.
 
 # License
 MIT
