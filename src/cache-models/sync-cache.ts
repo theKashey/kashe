@@ -11,18 +11,19 @@ export const syncCacheModel = ():CacheModel => {
     };
 
     const popCache = (cache: WeakStorage) => {
-        const popped = cacheStack.pop();
+        // overlapping async scopes settle in any order, so the scope to close may not be the last one
+        const index = cacheStack.lastIndexOf(cache);
 
-        if (cache !== popped) {
+        if (index === -1) {
             console.error({
                 expected: cache,
-                given: popped,
                 stack: cacheStack,
             });
 
             throw new Error('kashe: cache synchronization failed, unexpected cache found on function exist. Something async?')
         }
 
+        cacheStack.splice(index, 1);
         cacheOverride = cacheStack[cacheStack.length - 1];
     };
 
