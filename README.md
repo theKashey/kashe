@@ -685,7 +685,7 @@ Publishing happens in [the release workflow](.github/workflows/release.yml), nev
 
 ```bash
 npm version patch --no-git-tag-version # or minor, major
-yarn changelog
+npm run changelog
 git commit -am "chore: release v3.2.3"
 git tag v3.2.3
 git push origin master v3.2.3
