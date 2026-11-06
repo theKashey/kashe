@@ -5,7 +5,7 @@ import type {WeakStorage} from "./types.ts";
 // default implementation
 let cacheModelCreator = syncCacheModel;
 
-const models = new Map<any, CacheModel>();
+let models = new Map<any, CacheModel>();
 
 /**
  * configures new cache model to use
@@ -13,6 +13,7 @@ const models = new Map<any, CacheModel>();
  */
 export const configureCacheModel = (modelCreator: () => CacheModel) => {
     cacheModelCreator = modelCreator;
+    models = new Map();
 }
 
 const getModel= (key:any = "__default"):CacheModel => {
