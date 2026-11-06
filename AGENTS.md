@@ -13,8 +13,7 @@ name, `ask symbol --name <name>` prints what it is and where it is declared, and
 that reached it:
 
 ```bash
-VARIANCE_AUTHORITY_SINCE= npx jest --passWithNoTests
+VARIANCE_AUTHORITY_SINCE= npx jest
 ```
 
-Read `selected N of M` on stderr before the next edit. Without
-`--passWithNoTests`, a selection of none exits 1.
+Read `selected N of M` on stderr before the next edit.

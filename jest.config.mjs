@@ -6,5 +6,5 @@ export default withTestSelection(
     // tsconfig rewrites `./file.ts` to `./file.js`, which jest cannot resolve
     moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
   },
-  { preconditions: ['jest.config.mjs'] },
+  { suite: 'unit', preconditions: ['jest.config.mjs'] },
 );
