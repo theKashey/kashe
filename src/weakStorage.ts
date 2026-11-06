@@ -2,19 +2,29 @@ import type {Mappable, WeakStorage} from "./types.ts";
 import {isWeakable} from "./utils.ts";
 
 /**
- * Splits argiments into weak-mappable and _plain_ ones
+ * Splits arguments into weak-mappable and _plain_ ones.
+ *
+ * Weak keys are walked first, so an entry lives only as long as all of them: primitives sit in
+ * Maps owned by the last weak node and no Map ever holds an object key. That walk forgets where
+ * each argument stood, so the first plain key is the call's shape, one letter per position.
+ * It keeps `(obj, 1)` and `(1, obj)` apart, and `(obj)` from the middle of the path of `(obj, 1)`.
  */
 export const breakdownArgs = (args: any[]) => {
     const weaks = [];
-    const strongs = [];
+    const strongs: any[] = [''];
+    let shape = '';
 
     for (let i = 0; i < args.length; i++) {
         if (isWeakable(args[i])) {
             weaks.push(args[i]);
+            shape += 'w';
         } else {
-            strongs.push(args[i])
+            strongs.push(args[i]);
+            shape += 's';
         }
     }
+
+    strongs[0] = shape;
 
     return [weaks, strongs];
 }
