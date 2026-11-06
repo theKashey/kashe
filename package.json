@@ -31,10 +31,10 @@
     "release": "yarn build && yarn test",
     "size": "size-limit",
     "size:report": "size-limit --json > .size.json",
+    "check:package": "node scripts/check-package.mjs",
     "lint": "lib-builder lint",
     "format": "lib-builder format",
     "update": "lib-builder update",
-    "prepublish": "yarn build && yarn changelog",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "changelog:rewrite": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },

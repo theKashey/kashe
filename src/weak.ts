@@ -2,7 +2,7 @@ import {getCacheFor, withCacheScope} from "./cache.ts";
 // removed "in" until it's ESM compatible
 import {functionDouble} from "./function-double.ts";
 import type {WeakStorage} from "./types.ts";
-import {isWeakable, Stringify} from "./utils";
+import {isWeakable, Stringify} from "./utils.ts";
 import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
