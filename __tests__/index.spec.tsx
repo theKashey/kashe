@@ -46,7 +46,7 @@ describe('Weak', () => {
         const weakKashe = kashe(fn);
         const strongKashe = kashe(fn, {UNSAFE_allowNoWeakKeys: true, resolver: () => box});
 
-        expect(() => weakKashe(1, 2)).toThrow(new Error('No weak-mappable (object, function, symbol) argument found.'));
+        expect(() => weakKashe(1, 2)).toThrow(new Error('No weak-mappable (object, function) argument found.'));
         expect(() => strongKashe(1, 2)).not.toThrow();
 
         expect(strongKashe(1, 2)).toBe('1-2');

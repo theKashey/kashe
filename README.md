@@ -49,7 +49,7 @@ The simple usage of `kashe` is almost completely equal to `React.cache`. Feel fr
 ## Design Philosophy & Non-Goals
 
 - Kashe is **not** a drop-in replacement for every memoization library. It's designed with specific principles that prioritize **memory safety and leak prevention** over convenience features.
-- Kashe **is** a drop-in replacement for every memoization library. Just follow the rules and configure it properly.
+- Within those principles it covers what other memoization libraries do: follow the rules and configure it properly.
 - Kashe is not yet another "memoization" library. Its a tool to **derive data from data**.
 
 ```tsx
@@ -146,7 +146,7 @@ const memoized = kashe(
 
 #### Options
 
-- **`resolver?: () => object | symbol`**  
+- **`resolver?: () => object | any[]`**  
   Creates isolated cache slices. Each unique return value gets its own cache.
   Resolver must return an object or array. In case of array at least one item must be a non primitive.
   ```ts
@@ -161,7 +161,7 @@ const memoized = kashe(
   ```
 
 - **`limit?: number`**  
-  Limits how many primitive argument combinations are cached. Helps control memory usage. Before the limit is reached, no extra logic is applied. Once the limit is reached, the Least Recently Used record is dropped from the cache.
+  Limits how many primitive argument combinations are cached. Helps control memory usage. Once the limit is reached, the Least Recently Used record is dropped from the cache.
   ```ts
   const limited = kashe(fn, { limit: 50 }); // Max 50 primitive values "per argument"
   ```
@@ -398,14 +398,15 @@ A function returning a Promise can be memoized like any other. `kashe` will cach
 
 ```ts
 // A function returning a Promise can be memoized like any other
-const fetchUser = kashe(async (id: string) => {
-  const res = await fetch(`/api/users/${id}`);
+// Every kashe call needs an object argument: here it is the api client
+const fetchUser = kashe(async (api: ApiClient, id: string) => {
+  const res = await api.fetch(`/api/users/${id}`);
   return res.json();
 });
 
 // After the first call caches the promise, subsequent calls reuse it
-await fetchUser('42');
-const again = fetchUser('42'); // returns the same Promise instance if cached
+await fetchUser(api, '42');
+const again = fetchUser(api, '42'); // returns the same Promise instance if cached
 ```
 
 ### Memory-Limited Caching
@@ -421,7 +422,8 @@ const limitedCache = kashe(
 ### Multi-tenant Cache Isolation
 
 ```ts
-let currentTenant: string;
+// A resolver must return an object, so every tenant is one
+let currentTenant: Tenant;
 
 const tenantIsolatedCache = kashe(
   (query) => executeQuery(query),
@@ -429,10 +431,10 @@ const tenantIsolatedCache = kashe(
 );
 
 // Different tenants get completely isolated caches
-setTenant('tenant-a');
+currentTenant = tenantA;
 tenantIsolatedCache(query); // Cached for tenant-a
 
-setTenant('tenant-b'); 
+currentTenant = tenantB;
 tenantIsolatedCache(query); // Separate cache for tenant-b
 ```
 
@@ -592,11 +594,12 @@ const processData = kashe((data) => expensiveOperation(data));
 
 // In your server
 app.use((req, res, next) => {
-  // Each request automatically gets isolated cache
-  withKasheIsolation(() => {
-      processData(someData); // Cached per request
-  });
-  next();
+  // Everything the request does from here on runs inside its isolated cache
+  withKasheIsolation(() => next());
+});
+
+app.get('/', (req, res) => {
+  res.json(processData(someData)); // Cached per request
 });
 ```
 
@@ -605,10 +608,12 @@ app.use((req, res, next) => {
 - No memory leaks between requests
 - Works seamlessly with async operations
 
+The subpath needs Node.js 14.18 or newer.
+
 #### Sync Cache (default)
 
 The default synchronous cache model using WeakMap. Suitable for client-side applications and simple server scenarios.
-Warning: Sync cache is not expected to be able to properly handle async operations.
+Warning: Sync cache is not expected to be able to properly handle async operations. A scope around an async function stays open until its promise settles, so everything that runs in the meantime shares its cache, including other requests. Scopes that overlap are closed correctly, but only `asyncLocalStorageModel` keeps them apart.
 
 ### Multiple Cache Models
 Sometimes you even might want to use custom cache models or reuse implementation of existing ones to have multiple caching realities at the same time.

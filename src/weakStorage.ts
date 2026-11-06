@@ -38,7 +38,7 @@ type Test = {
 
 /**
  * creates a "recursive weak storage" - a structure that can store a value using a chain of keys
- * at least one of the keys must be a weak-mappable value (object, function, or symbol).
+ * at least one of the keys must be a weak-mappable value (object or function).
  *
  * This is a general purpose weak storage, which can be used to store values using a chain of keys.
  * @example
@@ -101,7 +101,7 @@ export const createWeakStorage = (storage: Mappable<Test> = new WeakMap()): Weak
         const [weaks,strongs] = breakdownArgs(args);
 
         if (options?.shouldCheckWeakArguments!==false && weaks.length<(options.minimalWeakArguments || 1) && !options.UNSAFE_allowNoWeakKeys) {
-            throw new Error(`No weak-mappable (object, function, symbol) argument found.`);
+            throw new Error(`No weak-mappable (object, function) argument found.`);
         }
 
         let writeTo: Mappable<Test> | undefined = storage;
