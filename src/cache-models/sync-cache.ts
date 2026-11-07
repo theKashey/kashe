@@ -2,29 +2,28 @@ import type {WeakStorage} from "../types.ts";
 import type {CacheModel} from "./types.ts";
 
 export const syncCacheModel = ():CacheModel => {
-    const cacheStack: WeakStorage[] = [];
+    // one entry per open scope: overlapping scopes can share a cache, and each closes only its own
+    const scopes: { cache: WeakStorage }[] = [];
     let cacheOverride: WeakStorage | undefined;
 
     const pushCache = (cache: WeakStorage) => {
-        cacheStack.push(cache);
+        const scope = {cache};
+
+        scopes.push(scope);
         cacheOverride = cache;
+
+        return scope;
     };
 
-    const popCache = (cache: WeakStorage) => {
+    const popCache = (scope: { cache: WeakStorage }) => {
         // overlapping async scopes settle in any order, so the scope to close may not be the last one
-        const index = cacheStack.lastIndexOf(cache);
+        const index = scopes.indexOf(scope);
 
-        if (index === -1) {
-            console.error({
-                expected: cache,
-                stack: cacheStack,
-            });
-
-            throw new Error('kashe: cache synchronization failed, unexpected cache found on function exist. Something async?')
+        // a thenable may settle twice, and the second close must not take another scope's entry
+        if (index !== -1) {
+            scopes.splice(index, 1);
+            cacheOverride = scopes[scopes.length - 1]?.cache;
         }
-
-        cacheStack.splice(index, 1);
-        cacheOverride = cacheStack[cacheStack.length - 1];
     };
 
     const getCacheOverride = () => cacheOverride;
@@ -37,10 +36,10 @@ export const syncCacheModel = ():CacheModel => {
 
     return {
         createCacheScope: (cache, fn) => {
+            const scope = pushCache(cache);
             let result;
 
             try {
-                pushCache(cache);
                 result = fn();
 
                 return result;
@@ -49,9 +48,9 @@ export const syncCacheModel = ():CacheModel => {
                 if (
                     isPromiseLike(result)
                 ) {
-                    result.then(() => popCache(cache), () => popCache(cache));
+                    result.then(() => popCache(scope), () => popCache(scope));
                 } else {
-                    popCache(cache);
+                    popCache(scope);
                 }
             }
         },
