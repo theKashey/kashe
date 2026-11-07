@@ -161,7 +161,7 @@ const memoized = kashe(
   ```
 
 - **`limit?: number`**  
-  Limits how many primitive argument combinations are cached. Helps control memory usage. Once the limit is reached, the Least Recently Used record is dropped from the cache.
+  Limits how many primitive values each map of the cache holds, one map per argument prefix, not how many argument combinations are cached in total. Helps control memory usage. Once a map is full, its Least Recently Used value is dropped, along with everything cached under it.
   ```ts
   const limited = kashe(fn, { limit: 50 }); // Max 50 primitive values "per argument"
   ```

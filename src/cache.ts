@@ -11,7 +11,8 @@ let models = new Map<any, CacheModel>();
 let weakModels = new WeakMap<object, CacheModel>();
 
 /**
- * configures new cache model to use
+ * configures new cache model to use. Call it once, at startup:
+ * the models in use are dropped, so a scope still open stops being seen
  * @param model
  */
 export const configureCacheModel = (modelCreator: () => CacheModel) => {
