@@ -570,7 +570,7 @@ For advanced scenarios like server-side rendering with request isolation, you ca
 
 ### `configureCacheModel(model)`
 
-Changes the global cache model used by all `kashe` functions.
+Changes the global cache model used by all `kashe` functions. Call it once, at startup, before any scope opens: it drops the models in use, so a scope still open, an `AsyncLocalStorage` one included, stops being seen.
 
 ```ts
 import { configureCacheModel } from 'kashe';
