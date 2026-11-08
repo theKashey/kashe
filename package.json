@@ -47,9 +47,9 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^14.3.0",
     "@theuiteam/lib-builder": "^1.1.0",
-    "@variance-authority/cli": "^0.27.0",
-    "@variance-authority/help": "^0.27.0",
-    "@variance-authority/sense": "^0.27.0",
+    "@variance-authority/cli": "^0.28.0",
+    "@variance-authority/help": "^0.28.0",
+    "@variance-authority/sense": "^0.28.0",
     "size-limit": "^14.3.0"
   },
   "engines": {
