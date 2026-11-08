@@ -9,6 +9,9 @@
   <a href="https://github.com/theKashey/kashe/actions/workflows/ci.yml">
     <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/theKashey/kashe/ci.yml?branch=master&style=flat-square">
   </a>
+  <a href="https://variance-authority.dev/">
+    <img alt="test evidence: Variance Authority" src="https://img.shields.io/badge/test%20evidence-Variance%20Authority-blue?style=flat-square">
+  </a>
   <a href="https://github.com/theKashey/kashe/actions">
     <img alt="regions run" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FtheKashey%2Fkashe%2Frefs%2Fbadge%2Fmaster%2Fregions-run.json">
   </a>
