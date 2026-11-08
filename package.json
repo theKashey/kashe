@@ -47,13 +47,13 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^14.3.0",
     "@theuiteam/lib-builder": "^1.1.0",
-    "@variance-authority/cli": "0.26.0",
-    "@variance-authority/help": "0.26.0",
-    "@variance-authority/sense": "0.26.0",
+    "@variance-authority/cli": "^0.27.0",
+    "@variance-authority/help": "^0.27.0",
+    "@variance-authority/sense": "^0.27.0",
     "size-limit": "^14.3.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.15.0"
   },
   "files": [
     "dist",
