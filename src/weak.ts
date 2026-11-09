@@ -2,7 +2,7 @@ import {getCacheFor, withCacheScope} from "./cache.ts";
 // removed "in" until it's ESM compatible
 import {functionDouble} from "./function-double.ts";
 import type {WeakStorage} from "./types.ts";
-import {isWeakable, Stringify} from "./utils";
+import {isWeakable, Stringify} from "./utils.ts";
 import {createWeakStorage} from "./weakStorage.ts";
 
 type WeakStorageCreator = () => WeakStorage;
@@ -189,7 +189,7 @@ export function weakMemoizeCreator(cacheCreator: WeakStorageCreator = createWeak
  * Weak memoization helper that stores cached results inside the arguments themselves using WeakMap.
  *
  * Unlike traditional memoization, kashe requires at least one argument to be a non-primitive value
- * (object, function, array, symbol) to store the cache, preventing memory leaks through automatic
+ * (object, function, array) to store the cache, preventing memory leaks through automatic
  * garbage collection when arguments are no longer referenced.
  *
  * Perfect for React selectors, computed properties, and any function where you want memory-safe caching

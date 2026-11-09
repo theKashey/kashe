@@ -2,4 +2,6 @@ node_modules/
 /dist/
 .DS_Store
 coverage/
-yarn-error.log
+npm-debug.log
+.size.json
+.variance/

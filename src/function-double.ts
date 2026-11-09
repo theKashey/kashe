@@ -1,27 +1,3 @@
-// copy of util-arity  package
-const FUNCTIONS: Record<number, (fn: Function) => Function> = {};
-
-function setArity(arity: number, fn: Function): Function {
-    if (!FUNCTIONS[arity]) {
-        if (typeof arity !== 'number') {
-            throw new TypeError('Expected arity to be a number, got ' + arity);
-        }
-
-        const params: string[] = [];
-
-        for (let i = 0; i < arity; i++) {
-            params.push('_' + i);
-        }
-
-        FUNCTIONS[arity] = new Function(
-            'fn',
-            `return function arity${arity} (${params.join(', ')}) { return fn.apply(this, arguments); }`
-        ) as (fn: Function) => Function;
-    }
-
-    return FUNCTIONS[arity](fn);
-}
-
 // copy of function-double package
 
 function safeDefine<T, K extends keyof T>(
@@ -60,17 +36,10 @@ export function functionDouble<T extends Function, K extends Function>(
     sourceFn: K,
     options: FunctionDoubleOptions
 ): K {
-    let result: Function = targetFn;
-
+    // `length` is one of the transferred properties, it is configurable since ES2015
     transferProperties(sourceFn, targetFn);
 
-    if (targetFn.length !== sourceFn.length) {
-        result = setArity(sourceFn.length, targetFn);
-        transferProperties(sourceFn, result);
-    }
-
-
-    safeDefine(result, 'toString', {
+    safeDefine(targetFn, 'toString', {
             configurable: true,
             writable: false,
             enumerable: false,
@@ -80,7 +49,7 @@ export function functionDouble<T extends Function, K extends Function>(
         });
 
     if (options.name) {
-        safeDefine(result, 'name', {
+        safeDefine(targetFn, 'name', {
             configurable: true,
             writable: false,
             enumerable: false,
@@ -88,5 +57,5 @@ export function functionDouble<T extends Function, K extends Function>(
         });
     }
 
-    return result as K;
+    return targetFn as unknown as K;
 }

@@ -1,28 +1,37 @@
 import {syncCacheModel} from './cache-models/sync-cache.ts'
 import type {CacheModel} from "./cache-models/types.ts";
-import type {WeakStorage} from "./types.ts";
+import type {Mappable, WeakStorage} from "./types.ts";
+import {isWeakable} from "./utils.ts";
 
 // default implementation
 let cacheModelCreator = syncCacheModel;
 
-const models = new Map<any, CacheModel>();
+// an object scope must not outlive its last user, so only primitive scopes are held strongly
+let models = new Map<any, CacheModel>();
+let weakModels = new WeakMap<object, CacheModel>();
 
 /**
- * configures new cache model to use
+ * configures new cache model to use. Call it once, at startup:
+ * the models in use are dropped, so a scope still open stops being seen
  * @param model
  */
 export const configureCacheModel = (modelCreator: () => CacheModel) => {
     cacheModelCreator = modelCreator;
+    models = new Map();
+    weakModels = new WeakMap();
 }
 
 const getModel= (key:any = "__default"):CacheModel => {
-    if (models.has(key)) {
-        return models.get(key)!;
+    const store: Mappable<CacheModel> = isWeakable(key) ? weakModels : models;
+    const known = store.get(key);
+
+    if (known) {
+        return known;
     }
 
     const model = cacheModelCreator();
-    models.set(key, model);
- 
+    store.set(key, model);
+
     return model;
 }
 

@@ -6,8 +6,14 @@
   <a href="https://www.npmjs.com/package/kashe">
     <img src="https://img.shields.io/npm/v/kashe.svg?style=flat-square" />
   </a>
-  <a href="https://travis-ci.org/theKashey/kashe">
-    <img alt="Travis" src="https://img.shields.io/travis/theKashey/kashe/master.svg?style=flat-square">
+  <a href="https://github.com/theKashey/kashe/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/theKashey/kashe/ci.yml?branch=master&style=flat-square">
+  </a>
+  <a href="https://variance-authority.dev/">
+    <img alt="test evidence: Variance Authority" src="https://img.shields.io/badge/test%20evidence-Variance%20Authority-blue?style=flat-square">
+  </a>
+  <a href="https://github.com/theKashey/kashe/actions">
+    <img alt="regions run" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FtheKashey%2Fkashe%2Frefs%2Fbadge%2Fmaster%2Fregions-run.json">
   </a>
 </div>
 
@@ -49,7 +55,7 @@ The simple usage of `kashe` is almost completely equal to `React.cache`. Feel fr
 ## Design Philosophy & Non-Goals
 
 - Kashe is **not** a drop-in replacement for every memoization library. It's designed with specific principles that prioritize **memory safety and leak prevention** over convenience features.
-- Kashe **is** a drop-in replacement for every memoization library. Just follow the rules and configure it properly.
+- Within those principles it covers what other memoization libraries do: follow the rules and configure it properly.
 - Kashe is not yet another "memoization" library. Its a tool to **derive data from data**.
 
 ```tsx
@@ -146,7 +152,7 @@ const memoized = kashe(
 
 #### Options
 
-- **`resolver?: () => object | symbol`**  
+- **`resolver?: () => object | any[]`**  
   Creates isolated cache slices. Each unique return value gets its own cache.
   Resolver must return an object or array. In case of array at least one item must be a non primitive.
   ```ts
@@ -161,7 +167,7 @@ const memoized = kashe(
   ```
 
 - **`limit?: number`**  
-  Limits how many primitive argument combinations are cached. Helps control memory usage. Before the limit is reached, no extra logic is applied. Once the limit is reached, the Least Recently Used record is dropped from the cache.
+  Limits how many primitive values each map of the cache holds, one map per argument prefix, not how many argument combinations are cached in total. Helps control memory usage. Once a map is full, its Least Recently Used value is dropped, along with everything cached under it.
   ```ts
   const limited = kashe(fn, { limit: 50 }); // Max 50 primitive values "per argument"
   ```
@@ -398,14 +404,15 @@ A function returning a Promise can be memoized like any other. `kashe` will cach
 
 ```ts
 // A function returning a Promise can be memoized like any other
-const fetchUser = kashe(async (id: string) => {
-  const res = await fetch(`/api/users/${id}`);
+// Every kashe call needs an object argument: here it is the api client
+const fetchUser = kashe(async (api: ApiClient, id: string) => {
+  const res = await api.fetch(`/api/users/${id}`);
   return res.json();
 });
 
 // After the first call caches the promise, subsequent calls reuse it
-await fetchUser('42');
-const again = fetchUser('42'); // returns the same Promise instance if cached
+await fetchUser(api, '42');
+const again = fetchUser(api, '42'); // returns the same Promise instance if cached
 ```
 
 ### Memory-Limited Caching
@@ -421,7 +428,8 @@ const limitedCache = kashe(
 ### Multi-tenant Cache Isolation
 
 ```ts
-let currentTenant: string;
+// A resolver must return an object, so every tenant is one
+let currentTenant: Tenant;
 
 const tenantIsolatedCache = kashe(
   (query) => executeQuery(query),
@@ -429,10 +437,10 @@ const tenantIsolatedCache = kashe(
 );
 
 // Different tenants get completely isolated caches
-setTenant('tenant-a');
+currentTenant = tenantA;
 tenantIsolatedCache(query); // Cached for tenant-a
 
-setTenant('tenant-b'); 
+currentTenant = tenantB;
 tenantIsolatedCache(query); // Separate cache for tenant-b
 ```
 
@@ -565,7 +573,7 @@ For advanced scenarios like server-side rendering with request isolation, you ca
 
 ### `configureCacheModel(model)`
 
-Changes the global cache model used by all `kashe` functions.
+Changes the global cache model used by all `kashe` functions. Call it once, at startup, before any scope opens: it drops the models in use, so a scope still open, an `AsyncLocalStorage` one included, stops being seen.
 
 ```ts
 import { configureCacheModel } from 'kashe';
@@ -592,11 +600,12 @@ const processData = kashe((data) => expensiveOperation(data));
 
 // In your server
 app.use((req, res, next) => {
-  // Each request automatically gets isolated cache
-  withKasheIsolation(() => {
-      processData(someData); // Cached per request
-  });
-  next();
+  // Everything the request does from here on runs inside its isolated cache
+  withKasheIsolation(() => next());
+});
+
+app.get('/', (req, res) => {
+  res.json(processData(someData)); // Cached per request
 });
 ```
 
@@ -605,10 +614,12 @@ app.use((req, res, next) => {
 - No memory leaks between requests
 - Works seamlessly with async operations
 
+The subpath needs Node.js 14.18 or newer.
+
 #### Sync Cache (default)
 
 The default synchronous cache model using WeakMap. Suitable for client-side applications and simple server scenarios.
-Warning: Sync cache is not expected to be able to properly handle async operations.
+Warning: Sync cache is not expected to be able to properly handle async operations. A scope around an async function stays open until its promise settles, so everything that runs in the meantime shares its cache, including other requests. Scopes that overlap are closed correctly, but only `asyncLocalStorageModel` keeps them apart.
 
 ### Multiple Cache Models
 Sometimes you even might want to use custom cache models or reuse implementation of existing ones to have multiple caching realities at the same time.
@@ -673,6 +684,20 @@ kashe          two states x 8,992,170 ops/sec ±0.96% (83 runs sampled)
 # Something to read
 - https://dev.to/thekashey/weak-memoization-in-javascript-4po6
 - https://dev.to/thekashey/memoization-forget-me-bomb-34kh
+
+# Releasing
+
+Publishing happens in [the release workflow](.github/workflows/release.yml), never from a laptop: it runs for a `v*` tag that equals the version in `package.json`, builds, tests and publishes with provenance.
+
+```bash
+npm version patch --no-git-tag-version # or minor, major
+npm run changelog
+git commit -am "chore: release v3.2.3"
+git tag v3.2.3
+git push origin master v3.2.3
+```
+
+The workflow holds no npm token. It needs one setup on npmjs.com, done once by a package owner: open `kashe`, Settings, Trusted Publisher, choose GitHub Actions, and enter the organization or user `theKashey`, the repository `kashe` and the workflow `release.yml`, with no environment.
 
 # License
 MIT
